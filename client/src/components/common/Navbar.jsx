@@ -31,7 +31,7 @@ function Navbar() {
             <path d="M2 17l10 5 10-5" />
             <path d="M2 12l10 5 10-5" />
           </svg>
-          StarterKit
+          Medico
         </Link>
         <div className="flex gap-2">
           <NavLink to="/" className={linkClass}>
