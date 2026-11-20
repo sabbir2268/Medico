@@ -1,16 +1,69 @@
-const express = require("express");
-const cors = require("cors");
+import { createServer } from "node:http";
+import app from "./src/app.js";
+import { env } from "./src/config/env.js";
+import {
+  connectDatabase,
+  disconnectDatabase,
+  registerDatabaseEventHandlers,
+} from "./src/config/database.js";
+import { logger } from "./src/utils/logger.js";
+let httpServer = null;
+let isShuttingDown = false;
 
-const app = express();
-const port = 5000;
+async function startServer() {
+  registerDatabaseEventHandlers();
+  try {
+    await connectDatabase();
+  } catch (error) {
+    logger.warn(`MongoDB connection failed: ${error.message}`);
+    logger.warn(
+      "Starting in degraded mode; /api/health will report the database as unavailable.",
+    );
+  }
+  httpServer = createServer(app);
+  await new Promise((resolve, reject) => {
+    const onError = (error) => reject(error);
+    httpServer.once("error", onError);
+    httpServer.listen(env.port, () => {
+      httpServer.off("error", onError);
+      resolve();
+    });
+  });
+  logger.info(`Server listening on port ${env.port} in ${env.nodeEnv} mode`);
+}
 
-app.use(cors());
-app.use(express.json());
+async function shutdown(signal = "SIGTERM", exitCode = 0) {
+  if (isShuttingDown) {
+    return;
+  }
+  isShuttingDown = true;
+  logger.info(`${signal} received. Starting graceful shutdown...`);
+  if (httpServer?.listening) {
+    await new Promise((resolve) => httpServer.close(resolve));
+    logger.info("HTTP server closed.");
+  }
+  try {
+    await disconnectDatabase();
+  } catch (error) {
+    logger.error(`Error while closing MongoDB connection: ${error.message}`);
+  }
+  logger.info("Graceful shutdown complete.");
+  process.exitCode = exitCode;
+}
 
-app.get("/", (req, res) => {
-  res.send("Server is running!");
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("unhandledRejection", (reason) => {
+  logger.error(`Unhandled rejection: ${reason?.stack || reason}`);
+  shutdown("unhandledRejection", 1);
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+process.on("uncaughtException", (error) => {
+  logger.error(`Uncaught exception: ${error.stack || error}`);
+  shutdown("uncaughtException", 1);
+});
+
+startServer().catch((error) => {
+  logger.error(`Failed to start server: ${error.stack || error.message}`);
+  process.exitCode = 1;
 });
