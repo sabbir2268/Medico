@@ -1,15 +1,18 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { router } from './app/router'
-import { RouterProvider } from 'react-router-dom'
-import { AuthProvider } from './context/AuthProvider'
-import "./styles/index.css";
-
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { RouterProvider } from "react-router-dom";
+import { router } from "@/app/router";
+import { AppProviders } from "@/app/providers/AppProviders";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import "@/config/env";
+import "@/styles/index.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AppProviders>
+        <RouterProvider router={router} />
+      </AppProviders>
+    </ErrorBoundary>
   </StrictMode>,
 );

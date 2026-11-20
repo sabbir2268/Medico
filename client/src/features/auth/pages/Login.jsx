@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { PATHS } from "../../../utils/paths";
+import { Button } from "@/components/ui/Button";
+import { PATHS } from "@/utils/paths";
 
 function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -11,37 +12,36 @@ function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault(); // stop the browser's default page reload
-    console.log("Login data:", formData); // real API call comes in C4
+    console.log("Login data:", formData); // real API call comes in a later phase
   };
 
   return (
-    <div className="mx-auto max-w-md rounded-lg border bg-surface p-6 shadow">
+    <div className="rounded-card border border-line bg-surface p-6 shadow-card">
       <h1 className="mb-6 text-2xl font-bold">Login</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email"
           name="email"
           placeholder="Email"
+          autoComplete="email"
           value={formData.email}
           onChange={handleChange}
           required
-          className="w-full rounded-md border border-line bg-surface px-3 py-2 text-foreground placeholder:text-muted"
+          className="w-full rounded-control border border-input bg-surface px-3 py-2 text-foreground placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-ring/30 focus:outline-none"
         />
         <input
           type="password"
           name="password"
           placeholder="Password"
+          autoComplete="current-password"
           value={formData.password}
           onChange={handleChange}
           required
-          className="w-full rounded-md border border-line bg-surface px-3 py-2 text-foreground placeholder:text-muted"
+          className="w-full rounded-control border border-input bg-surface px-3 py-2 text-foreground placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-ring/30 focus:outline-none"
         />
-        <button
-          type="submit"
-          className="w-full rounded-md bg-blue-600 py-2 font-medium text-white hover:bg-blue-700"
-        >
+        <Button type="submit" className="w-full">
           Login
-        </button>
+        </Button>
       </form>
       <p className="mt-4 text-sm text-muted">
         No account?{" "}

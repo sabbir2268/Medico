@@ -1,40 +1,27 @@
 import { Link, NavLink } from "react-router-dom";
-import { PATHS } from "../../utils/paths";
+import { Pill } from "lucide-react";
+import { siteConfig } from "@/config/site";
+import { PATHS } from "@/utils/paths";
 
 const linkClass = ({ isActive }) =>
-  `px-3 py-2 rounded-md text-sm font-medium ${
+  `rounded-control px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
     isActive ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-hover"
   }`;
 
-  
-
 function Navbar() {
   return (
-    <header className="border-b bg-surface">
-      <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+    <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
+      <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <Link
-          to="/"
-          className="text-lg font-bold text-blue-600 flex items-center gap-2"
+          to={PATHS.HOME}
+          className="flex items-center gap-2 font-heading text-lg font-bold text-primary"
+          aria-label={`${siteConfig.name} home`}
         >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="shrink-0"
-          >
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
-          </svg>
-          Medico
+          <Pill className="h-6 w-6" aria-hidden="true" />
+          {siteConfig.name}
         </Link>
-        <div className="flex gap-2">
-          <NavLink to="/" className={linkClass}>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <NavLink to={PATHS.HOME} className={linkClass}>
             Home
           </NavLink>
           <NavLink to={PATHS.ABOUT} className={linkClass}>

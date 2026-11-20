@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { PATHS } from "../../../utils/paths";
+import { Button } from "@/components/ui/Button";
+import { PATHS } from "@/utils/paths";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -15,47 +16,47 @@ function Register() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Register data:", formData); // real API call comes in C4
+    console.log("Register data:", formData); // real API call comes in a later phase
   };
 
   return (
-    <div className="mx-auto max-w-md rounded-lg border bg-surface p-6 shadow">
+    <div className="rounded-card border border-line bg-surface p-6 shadow-card">
       <h1 className="mb-6 text-2xl font-bold">Create an account</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="text"
           name="name"
           placeholder="Name"
+          autoComplete="name"
           value={formData.name}
           onChange={handleChange}
           required
-          className="w-full rounded-md border border-line bg-surface px-3 py-2 text-foreground placeholder:text-muted"
+          className="w-full rounded-control border border-input bg-surface px-3 py-2 text-foreground placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-ring/30 focus:outline-none"
         />
         <input
           type="email"
           name="email"
           placeholder="Email"
+          autoComplete="email"
           value={formData.email}
           onChange={handleChange}
           required
-          className="w-full rounded-md border border-line bg-surface px-3 py-2 text-foreground placeholder:text-muted"
+          className="w-full rounded-control border border-input bg-surface px-3 py-2 text-foreground placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-ring/30 focus:outline-none"
         />
         <input
           type="password"
           name="password"
           placeholder="Password (min 8 characters)"
+          autoComplete="new-password"
           value={formData.password}
           onChange={handleChange}
           required
           minLength={8}
-          className="w-full rounded-md border border-line bg-surface px-3 py-2 text-foreground placeholder:text-muted"
+          className="w-full rounded-control border border-input bg-surface px-3 py-2 text-foreground placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-ring/30 focus:outline-none"
         />
-        <button
-          type="submit"
-          className="w-full rounded-md bg-blue-600 py-2 font-medium text-white hover:bg-blue-700"
-        >
+        <Button type="submit" className="w-full">
           Register
-        </button>
+        </Button>
       </form>
       <p className="mt-4 text-sm text-muted">
         Already have an account?{" "}
