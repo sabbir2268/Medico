@@ -1,6 +1,3 @@
-import { Link } from "react-router-dom";
-import { PATHS } from "../../../utils/paths";
-
 // Replace with your real repository URL
 const GITHUB_URL = "https://github.com/sabbir2268/react-frontend-boilerplate-2026";
 
@@ -52,9 +49,7 @@ function SectionHeading({ title, subtitle }) {
   return (
     <div className="mb-6 text-center">
       <h2 className="text-2xl font-bold sm:text-3xl">{title}</h2>
-      {subtitle && (
-        <p className="mx-auto mt-2 max-w-2xl text-muted">{subtitle}</p>
-      )}
+      {subtitle && <p className="mx-auto mt-2 max-w-2xl text-muted">{subtitle}</p>}
     </div>
   );
 }
@@ -67,21 +62,19 @@ function Home() {
         <span className="inline-block rounded-full border bg-surface px-3 py-1 text-xs font-medium text-muted">
           React Frontend Boilerplate 2026
         </span>
-        <h1 className="mt-4 text-4xl font-bold sm:text-5xl text-foreground">
+        <h1 className="mt-4 text-4xl font-bold text-foreground sm:text-5xl">
           Ready-to-use React starter kit
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-muted">
-          A clean, themeable client template with routing, auth state, API
-          service layer, and Firebase config already set up. Clone it, add your
-          idea, and ship.
+          A clean, themeable client template with routing, auth state, API service layer,
+          and Firebase config already set up. Clone it, add your idea, and ship.
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
-          
           <a
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-md border border-line bg-surface px-6 py-3 font-medium text-foreground hover:bg-hover transition-colors"
+            className="rounded-md border border-line bg-surface px-6 py-3 font-medium text-foreground transition-colors hover:bg-hover"
           >
             View on GitHub
           </a>
@@ -145,7 +138,7 @@ function Home() {
           title="How to get started"
           subtitle="Create your own project from the GitHub template in minutes."
         />
-        <ol className="mx-auto max-w-2xl space-y-2 text-sm text-muted list-decimal list-inside">
+        <ol className="mx-auto max-w-2xl list-inside list-decimal space-y-2 text-sm text-muted">
           {GET_STARTED.map((item, index) => (
             <li key={index}>{item}</li>
           ))}
@@ -180,8 +173,7 @@ function Home() {
           <code className="text-foreground">{QUICK_START}</code>
         </pre>
         <p className="mt-3 text-center text-xs text-muted">
-          On Windows PowerShell, use <code>copy</code> instead of{" "}
-          <code>cp</code>.
+          On Windows PowerShell, use <code>copy</code> instead of <code>cp</code>.
         </p>
       </section>
     </div>

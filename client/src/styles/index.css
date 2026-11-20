@@ -1,55 +1,132 @@
-/* 1. Google Fonts: must be the FIRST line in the file */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap");
-
-/* 2. Tailwind */
+/* 1. Tailwind v4: CSS-first configuration. No tailwind.config.js is needed. */
 @import "tailwindcss";
 
-/* 3. Lets you also write dark: utilities, driven by the .dark class on <html> */
+/* 2. Class-based dark mode, driven by .dark on <html>. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* 4. Fonts, each with a fallback stack so the app still looks fine if Google Fonts is blocked */
+/* 3. Design tokens: fonts, radii, and shadows. */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
+  --radius-pill: 9999px;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 30px rgb(15 23 42 / 0.06);
 }
 
-/* 5. Tell Tailwind which utilities to create (bg-surface, text-muted, ...) */
+/* 4. Map runtime CSS variables to Tailwind utilities. */
 @theme inline {
   --color-background: var(--bg);
   --color-surface: var(--surface);
+  --color-card: var(--surface);
   --color-foreground: var(--fg);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted);
   --color-hover: var(--hover);
   --color-line: var(--line);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--ring);
+
   --color-primary: var(--brand);
   --color-primary-hover: var(--brand-hover);
   --color-primary-foreground: var(--brand-fg);
+  --color-primary-soft: var(--brand-soft);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-foreground: var(--secondary-fg);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-fg);
+
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: #ffffff;
+  --color-success: var(--success);
+  --color-success-foreground: #ffffff;
+  --color-warning: var(--warning);
+  --color-warning-foreground: #ffffff;
+  --color-info: var(--info);
+  --color-info-foreground: #ffffff;
 }
 
-/* 6. Light theme values (default) */
+/* 5. Light theme values (default). */
 :root {
   color-scheme: light;
-  --bg: #f9fafb;
+  --bg: #f8fafc;
   --surface: #ffffff;
-  --fg: #111827;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --hover: #f3f4f6;
-  --brand: #2563eb;
-  --brand-hover: #1d4ed8;
+  --fg: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --hover: #f1f5f9;
+  --brand: #0d9488;
+  --brand-hover: #0f766e;
   --brand-fg: #ffffff;
+  --brand-soft: #ccfbf1;
+  --ring: #14b8a6;
+  --secondary: #ecfdf5;
+  --secondary-hover: #d1fae5;
+  --secondary-fg: #065f46;
+  --accent: #f0fdfa;
+  --accent-fg: #0f766e;
+  --danger: #dc2626;
+  --success: #059669;
+  --warning: #d97706;
+  --info: #0284c7;
 }
 
-/* 7. Dark theme values */
+/* 6. Dark theme values. */
 .dark {
   color-scheme: dark;
-  --bg: #0b1120;
-  --surface: #111827;
-  --fg: #f3f4f6;
-  --muted: #9ca3af;
-  --line: #1f2937;
-  --hover: #1f2937;
-  --brand: #60a5fa;
-  --brand-hover: #93c5fd;
-  --brand-fg: #0b1120;
+  --bg: #06121a;
+  --surface: #0f1f28;
+  --fg: #e6f4f1;
+  --muted: #94a3b8;
+  --line: #1e3a3a;
+  --hover: #16303a;
+  --brand: #2dd4bf;
+  --brand-hover: #5eead4;
+  --brand-fg: #06121a;
+  --brand-soft: #134e4a;
+  --ring: #2dd4bf;
+  --secondary: #134e4a;
+  --secondary-hover: #115e59;
+  --secondary-fg: #ccfbf1;
+  --accent: #0f2f33;
+  --accent-fg: #99f6e4;
+  --danger: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --info: #38bdf8;
+}
+
+/* 7. Base typography and sensible defaults. */
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
