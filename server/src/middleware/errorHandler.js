@@ -1,0 +1,79 @@
+import mongoose from 'mongoose';
+import { isProduction } from '../config/env.js';
+import { logger } from '../utils/logger.js';
+import { ApiError } from '../utils/ApiError.js';
+import { sendError } from '../utils/apiResponse.js';
+
+function normalizeError(error) {
+  if (error instanceof ApiError) {
+    return {
+      statusCode: error.statusCode,
+      message: error.message,
+      code: error.code,
+      errors: error.errors,
+    };
+  }
+
+  if (error instanceof mongoose.Error.ValidationError) {
+    return {
+      statusCode: 400,
+      message: 'Validation failed',
+      code: 'VALIDATION_ERROR',
+      errors: Object.fromEntries(Object.entries(error.errors).map(([field, detail]) => [field, detail.message])),
+    };
+  }
+
+  if (error instanceof mongoose.Error.CastError) {
+    return {
+      statusCode: 400,
+      message: `Invalid value for field "${error.path}"`,
+      code: 'CAST_ERROR',
+    };
+  }
+
+  if (error?.code === 11000) {
+    return {
+      statusCode: 409,
+      message: 'Duplicate value for a unique field',
+      code: 'DUPLICATE_KEY',
+      errors: error.keyValue,
+    };
+  }
+
+  if (error?.type === 'entity.parse.failed') {
+    return {
+      statusCode: 400,
+      message: 'Invalid JSON payload',
+      code: 'INVALID_JSON',
+    };
+  }
+
+  const hasValidStatus = Number.isInteger(error?.statusCode) && error.statusCode >= 400 && error.statusCode < 600;
+  const statusCode = hasValidStatus ? error.statusCode : 500;
+
+  return {
+    statusCode,
+    message: statusCode === 500 ? 'Internal Server Error' : error.message,
+    code: error?.code ? String(error.code) : undefined,
+  };
+}
+
+export function errorHandler(error, req, res, next) {
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  const { statusCode, message, code, errors } = normalizeError(error);
+
+  if (statusCode >= 500) {
+    logger.error(error.stack || error.message || String(error));
+  }
+
+  return sendError(res, {
+    statusCode,
+    message,
+    code,
+    errors,
+    stack: !isProduction && statusCode >= 500 ? error.stack : undefined,
+  });
+}
