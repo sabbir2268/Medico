@@ -7,11 +7,11 @@ import { notify } from "@/lib/notify";
 import { PATHS } from "@/utils/paths";
 
 const SHOP_LINKS = [
-  { label: "Prescription medicines", target: "medicines" },
-  { label: "Over-the-counter", target: "categories" },
-  { label: "Vitamins & supplements", target: "categories" },
-  { label: "Today's deals", target: "deals" },
-  { label: "Medical devices", target: "categories" },
+  { label: "All medicines", to: PATHS.SHOP },
+  { label: "Prescription medicines", to: PATHS.CATEGORIES },
+  { label: "Over-the-counter", to: PATHS.CATEGORIES },
+  { label: "Vitamins & supplements", to: PATHS.CATEGORIES },
+  { label: "Medical devices", to: PATHS.CATEGORIES },
 ];
 
 const HELP_LINKS = [
@@ -28,10 +28,10 @@ const SOCIALS = [
   { label: "X", short: "x" },
 ];
 
-function FooterLink({ label, target }) {
+function FooterLink({ label, to, target }) {
   return (
     <Link
-      to={{ pathname: "/", hash: `#${target}` }}
+      to={to ?? { pathname: PATHS.HOME, hash: `#${target}` }}
       className="text-sm text-muted transition hover:text-primary"
     >
       {label}
@@ -150,11 +150,11 @@ function Footer() {
                 </Link>
               </li>
               <li>
-                <FooterLink label="Pharmacy partners" target="categories" />
+                <FooterLink label="Pharmacy partners" to={PATHS.CATEGORIES} />
               </li>
 
               <li>
-                <FooterLink label="Careers" target="top" />
+                <FooterLink label="Careers" to={PATHS.HOME} />
               </li>
             </ul>
 

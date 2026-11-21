@@ -58,6 +58,14 @@ function Login() {
           error={errors.password}
           {...register("password")}
         />
+        <div className="-mt-2 text-right">
+          <Link
+            to={PATHS.FORGOT_PASSWORD}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? "Signing in..." : "Login"}
         </Button>

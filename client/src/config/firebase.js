@@ -1,5 +1,5 @@
 import { getApps, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { browserLocalPersistence, getAuth, setPersistence } from "firebase/auth";
 import { env, isFirebaseConfigured } from "./env";
 
 const firebaseConfig = {
@@ -22,3 +22,10 @@ export const app = isFirebaseConfigured
   : null;
 
 export const auth = app ? getAuth(app) : null;
+
+// Keep the signed-in session across browser restarts (Firebase default, made explicit).
+if (auth) {
+  setPersistence(auth, browserLocalPersistence).catch(() => {
+    /* Falls back to Firebase's in-memory session if storage is unavailable. */
+  });
+}

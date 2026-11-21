@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ROLES } from "@/constants/roles";
+import ForgotPassword from "./ForgotPassword";
 import Login from "./Login";
 import Profile from "./Profile";
 import Register from "./Register";
@@ -38,6 +39,7 @@ beforeEach(() => {
     loginWithGitHub: vi.fn().mockResolvedValue(session),
     updateProfile: vi.fn().mockResolvedValue(session),
     changePassword: vi.fn().mockResolvedValue(true),
+    resetPassword: vi.fn().mockResolvedValue(true),
     uploadPhoto: vi.fn().mockResolvedValue("https://example.com/new.png"),
     logout: vi.fn().mockResolvedValue(undefined),
   };
@@ -80,6 +82,24 @@ describe("login page", () => {
 
     expect(authState.value.loginWithGoogle).toHaveBeenCalledOnce();
     expect(authState.value.loginWithGitHub).toHaveBeenCalledOnce();
+  });
+});
+
+describe("forgot password page", () => {
+  it("sends a reset link and shows a confirmation", async () => {
+    const user = userEvent.setup();
+    authState.value.user = null;
+    renderPage(<ForgotPassword />);
+
+    await user.type(screen.getByLabelText("Email"), "asha@example.com");
+    await user.click(screen.getByRole("button", { name: "Send reset link" }));
+
+    await waitFor(() =>
+      expect(authState.value.resetPassword).toHaveBeenCalledWith("asha@example.com"),
+    );
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Check your email" }),
+    ).toBeInTheDocument();
   });
 });
 

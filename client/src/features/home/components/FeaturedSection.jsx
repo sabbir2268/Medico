@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AsyncContent, SkeletonGrid } from "@/components/shared/AsyncContent";
 import { MedicineCard } from "@/components/shared/MedicineCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
+import { PATHS } from "@/utils/paths";
 import { useFeaturedMedicines } from "../hooks/useHomeData";
 
 export function FeaturedSection() {
@@ -18,7 +19,7 @@ export function FeaturedSection() {
         isFallback={query.isFallback}
         action={
           <Link
-            to={{ pathname: "/", hash: "#deals" }}
+            to={PATHS.SHOP}
             className="inline-flex items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary-soft"
           >
             See today's deals

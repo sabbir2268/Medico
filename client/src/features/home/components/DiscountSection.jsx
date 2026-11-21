@@ -5,6 +5,7 @@ import { A11y, Keyboard, Navigation } from "swiper/modules";
 import { AsyncContent, SkeletonGrid } from "@/components/shared/AsyncContent";
 import { MedicineCard } from "@/components/shared/MedicineCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
+import { PATHS } from "@/utils/paths";
 import { useDiscountedMedicines } from "../hooks/useHomeData";
 
 export function DiscountSection() {
@@ -19,7 +20,7 @@ export function DiscountSection() {
       action={
         <div className="flex items-center gap-2">
           <Link
-            to={{ pathname: "/", hash: "#featured-medicines" }}
+            to={PATHS.SHOP}
             className="inline-flex items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary-soft"
           >
             View all medicines

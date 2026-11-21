@@ -1,9 +1,10 @@
-import { Plus, Star, Store } from "lucide-react";
+import { Eye, Plus, Star, Store } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Visual } from "@/components/shared/Visual";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/format";
 import { notify } from "@/lib/notify";
+import { addToCart } from "@/features/shop/utils/cart";
 
 function Rating({ rating, reviewCount }) {
   return (
@@ -28,7 +29,7 @@ function Rating({ rating, reviewCount }) {
   );
 }
 
-export function MedicineCard({ medicine, className }) {
+export function MedicineCard({ medicine, className, onDetails }) {
   const {
     name,
     genericName,
@@ -131,17 +132,37 @@ export function MedicineCard({ medicine, className }) {
             )}
           </div>
 
-          <Button
-            variant="primary"
-            size="sm"
-            className="mt-3 w-full"
-            disabled={!inStock}
-            aria-label={`Add ${name} to cart`}
-            onClick={() => notify.success(`${name} added to your cart`)}
+          <div
+            className={`mt-3 grid gap-2 ${onDetails ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1"}`}
           >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Add to cart
-          </Button>
+            {onDetails && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDetails}
+                aria-label={`View details for ${name}`}
+              >
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full"
+              disabled={!inStock}
+              aria-label={`Add ${name} to cart`}
+              onClick={() => {
+                const count = addToCart(medicine);
+
+                notify.success(
+                  `${name} added to your cart. ${count} item${count === 1 ? "" : "s"} total.`,
+                );
+              }}
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Add to cart
+            </Button>
+          </div>
         </div>
       </div>
     </article>

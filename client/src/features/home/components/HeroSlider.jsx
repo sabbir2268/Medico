@@ -6,12 +6,14 @@ import {
   Star,
   Truck,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { A11y, Autoplay, EffectFade, Navigation, Pagination } from "swiper/modules";
 import { AsyncContent } from "@/components/shared/AsyncContent";
 import { Visual } from "@/components/shared/Visual";
 import { Button } from "@/components/ui/Button";
 import { formatPrice } from "@/lib/format";
+import { PATHS } from "@/utils/paths";
 import { useAdvertisedMedicines } from "../hooks/useHomeData";
 
 const TONES = {
@@ -20,10 +22,6 @@ const TONES = {
   "hero-amber": "from-amber-600 via-teal-700 to-emerald-800",
   "hero-emerald": "from-emerald-600 via-teal-700 to-cyan-800",
 };
-
-function scrollToSection(id) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
 
 function HeroSkeleton() {
   return (
@@ -47,6 +45,7 @@ function HeroSkeleton() {
 }
 
 function HeroSlide({ slide }) {
+  const navigate = useNavigate();
   const medicine = slide.medicine ?? {};
   const tone = TONES[slide.tone] ?? TONES["hero-teal"];
 
@@ -84,7 +83,7 @@ function HeroSlide({ slide }) {
               variant="primary"
               size="lg"
               className="bg-white text-teal-800 hover:bg-teal-50"
-              onClick={() => scrollToSection(slide.targetId ?? "medicines")}
+              onClick={() => navigate(PATHS.SHOP)}
             >
               {slide.ctaLabel}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -93,7 +92,7 @@ function HeroSlide({ slide }) {
               variant="outline"
               size="lg"
               className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
-              onClick={() => scrollToSection("categories")}
+              onClick={() => navigate(PATHS.CATEGORIES)}
             >
               Browse categories
             </Button>

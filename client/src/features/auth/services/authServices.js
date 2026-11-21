@@ -1,8 +1,8 @@
 import {
   createUserWithEmailAndPassword,
   EmailAuthProvider,
-  getIdToken,
   GithubAuthProvider,
+  getIdToken,
   GoogleAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
@@ -16,10 +16,39 @@ import {
 } from "firebase/auth";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { app, auth } from "@/config/firebase";
-import { env } from "@/config/env";
-import { apiClient } from "@/lib/api";
-import { ROLES, normalizeAssignableRole } from "@/constants/roles";
-import { AUTH_ENDPOINTS } from "../constants/authEndpoints";
+import { normalizeAssignableRole } from "@/constants/roles";
+import { PATHS } from "@/utils/paths";
+import { readLocalProfile, writeLocalProfile } from "../utils/localProfile";
+
+const AUTH_ERROR_MESSAGES = {
+  "auth/invalid-credential": "Incorrect email or password.",
+  "auth/invalid-login-credentials": "Incorrect email or password.",
+  "auth/wrong-password": "Incorrect email or password.",
+  "auth/user-not-found": "Incorrect email or password.",
+  "auth/invalid-email": "Enter a valid email address.",
+  "auth/missing-email": "Enter your email address.",
+  "auth/email-already-in-use": "An account with this email already exists.",
+  "auth/weak-password": "Choose a stronger password with at least 6 characters.",
+  "auth/too-many-requests": "Too many attempts. Please wait a moment and try again.",
+  "auth/network-request-failed": "Network error. Check your connection and try again.",
+  "auth/popup-blocked":
+    "Your browser blocked the sign-in popup. Allow popups and try again.",
+  "auth/popup-closed-by-user": "Sign-in was cancelled.",
+  "auth/cancelled-popup-request": "Sign-in was cancelled.",
+  "auth/account-exists-with-different-credential":
+    "An account already exists with this email using another sign-in method.",
+  "auth/requires-recent-login": "Please sign in again before making this change.",
+  "auth/user-disabled": "This account has been disabled.",
+  "auth/operation-not-allowed": "This sign-in method is not enabled for the project.",
+  "auth/configuration-not-found":
+    "Firebase Authentication is not set up for this project. Open the Firebase console → Authentication, then enable Email/Password and the social providers you use.",
+  "auth/invalid-api-key":
+    "The Firebase API key is not valid. Check VITE_FIREBASE_API_KEY in client/.env.",
+  "auth/api-key-not-valid":
+    "The Firebase API key is not valid. Check VITE_FIREBASE_API_KEY in client/.env.",
+  "auth/unauthorized-domain":
+    "This domain is not authorized for Firebase sign-in. Add it under Authentication → Settings → Authorized domains.",
+};
 
 function requireAuth() {
   if (!auth) {
@@ -31,72 +60,74 @@ function requireAuth() {
   return auth;
 }
 
-function unwrap(payload) {
-  return payload && typeof payload === "object" && "data" in payload ? payload.data : payload;
+function requireCurrentUser() {
+  const current = requireAuth().currentUser;
+
+  if (!current) {
+    throw new Error("You need to be signed in to do that.");
+  }
+
+  return current;
 }
 
-function canUseFirebaseOnly(error) {
-  if (!env.VITE_ALLOW_FIREBASE_ONLY_AUTH) return false;
+function saveProfile(uid, updates) {
+  const current = readLocalProfile(uid) ?? {};
 
-  const status = error?.status ?? error?.response?.status;
-
-  return !status || status === 404 || status === 501 || status === 503;
+  return writeLocalProfile(uid, { ...current, ...updates });
 }
 
 /**
- * Firebase identity + the trusted server record are merged into one app user.
- * A missing server response falls back to the sanitized, client-known values.
+ * Merge the Firebase identity with the app-level profile kept on this device.
+ * Firebase always wins for identity fields; the profile supplies role/name.
  */
-export function toAppUser(firebaseUser, serverUser = null, requestedRole = null, localProfile = {}) {
+export function toAppUser(firebaseUser, localProfile = null) {
   if (!firebaseUser) return null;
 
-  const server = Object.fromEntries(
-    Object.entries(serverUser ?? {}).filter(([, value]) => value !== undefined && value !== null),
-  );
-  const name = server.name ?? localProfile.name ?? firebaseUser.displayName ?? "Member";
-  const email = firebaseUser.email ?? server.email ?? localProfile.email ?? "";
+  const profile = localProfile ?? {};
+  const name = profile.name ?? profile.username ?? firebaseUser.displayName ?? "Member";
+  const email = firebaseUser.email ?? profile.email ?? "";
 
-  const user = {
+  return {
     uid: firebaseUser.uid,
     id: firebaseUser.uid,
     name,
-    username: server.username ?? localProfile.username ?? name,
+    username: profile.username ?? name,
     email,
-    photoURL: server.photoURL ?? localProfile.photoURL ?? firebaseUser.photoURL ?? "",
-    emailVerified: firebaseUser.emailVerified ?? false,
+    photoURL: profile.photoURL || firebaseUser.photoURL || "",
+    emailVerified: Boolean(firebaseUser.emailVerified),
     provider: firebaseUser.providerData?.[0]?.providerId ?? "password",
-    role: server.role ?? normalizeAssignableRole(requestedRole ?? ROLES.USER),
-  };
-
-  if (!Object.keys(server).length) return user;
-
-  return {
-    ...user,
-    ...server,
-    uid: server.uid ?? firebaseUser.uid,
-    id: server.id ?? firebaseUser.uid,
-    email,
-    role: server.role ?? user.role,
+    role: normalizeAssignableRole(profile.role),
   };
 }
 
-async function syncWithBackend({ method = "post", endpoint, payload, firebaseUser, requestedRole, localProfile }) {
-  try {
-    const { data } = await apiClient[method](endpoint, payload);
-    const body = unwrap(data);
-
-    return {
-      user: toAppUser(firebaseUser, body?.user ?? body ?? null, requestedRole, localProfile),
-      token: body?.token ?? body?.accessToken ?? null,
-    };
-  } catch (error) {
-    if (!canUseFirebaseOnly(error)) throw error;
-
-    return {
-      user: toAppUser(firebaseUser, null, requestedRole, localProfile),
-      token: null,
-    };
+/**
+ * Turns raw Firebase error codes into messages that are safe to show users.
+ * Non-Firebase errors pass through unchanged.
+ */
+export function toAuthError(error) {
+  if (!error) {
+    return new Error("Something went wrong. Please try again.");
   }
+
+  const code = typeof error.code === "string" ? error.code : "";
+  const knownMessage = AUTH_ERROR_MESSAGES[code];
+
+  if (knownMessage) {
+    return new Error(knownMessage, { cause: error });
+  }
+
+  if (code.startsWith("auth/")) {
+    const message = error.message
+      ?.replace(/^Firebase:\s*/i, "")
+      .replace(/\s*\(auth\/[^)]+\)\.?$/i, "")
+      .trim();
+
+    return new Error(message || "Authentication failed. Please try again.", {
+      cause: error,
+    });
+  }
+
+  return error instanceof Error ? error : new Error(String(error));
 }
 
 export function observeAuth(callback) {
@@ -107,14 +138,28 @@ export function observeAuth(callback) {
 
   return onAuthStateChanged(
     auth,
-    callback,
+    (firebaseUser) => {
+      callback(
+        firebaseUser ? toAppUser(firebaseUser, readLocalProfile(firebaseUser.uid)) : null,
+      );
+    },
     () => callback(null),
   );
 }
 
-export async function registerWithEmail({ username, email, password, photoURL = "", role }) {
+export async function registerWithEmail({
+  username,
+  email,
+  password,
+  photoURL = "",
+  role,
+}) {
   const safeRole = normalizeAssignableRole(role);
-  const credential = await createUserWithEmailAndPassword(requireAuth(), email, password);
+  const credential = await createUserWithEmailAndPassword(
+    requireAuth(),
+    email.trim(),
+    password,
+  );
 
   try {
     await updateProfile(credential.user, {
@@ -122,39 +167,30 @@ export async function registerWithEmail({ username, email, password, photoURL = 
       photoURL: photoURL || null,
     });
   } catch {
-    /* Firebase account exists; the profile can be completed later. */
+    /* The account exists; the display name can be set again from the profile page. */
   }
 
-  const idToken = await getIdToken(credential.user);
-
-  return syncWithBackend({
-    endpoint: AUTH_ENDPOINTS.register,
-    payload: {
-      name: username,
-      username,
-      email,
-      photoURL,
-      role: safeRole,
-      firebaseUid: credential.user.uid,
-      idToken,
-    },
-    firebaseUser: credential.user,
-    requestedRole: safeRole,
-    localProfile: { name: username, username, photoURL, email },
+  const profile = saveProfile(credential.user.uid, {
+    name: username,
+    username,
+    email: credential.user.email ?? email.trim(),
+    photoURL,
+    role: safeRole,
   });
+
+  return { user: toAppUser(credential.user, profile) };
 }
 
 export async function signInWithEmail({ email, password }) {
-  const credential = await signInWithEmailAndPassword(requireAuth(), email, password);
-  const idToken = await getIdToken(credential.user);
+  const credential = await signInWithEmailAndPassword(
+    requireAuth(),
+    email.trim(),
+    password,
+  );
 
-  return syncWithBackend({
-    endpoint: AUTH_ENDPOINTS.login,
-    payload: { email, firebaseUid: credential.user.uid, idToken },
-    firebaseUser: credential.user,
-    requestedRole: ROLES.USER,
-    localProfile: { email },
-  });
+  return {
+    user: toAppUser(credential.user, readLocalProfile(credential.user.uid)),
+  };
 }
 
 export async function signInWithSocial(providerName) {
@@ -166,79 +202,82 @@ export async function signInWithSocial(providerName) {
   }
 
   const credential = await signInWithPopup(requireAuth(), provider);
-  const idToken = await getIdToken(credential.user);
 
-  // Social accounts never carry an assignable privileged role.
-  return syncWithBackend({
-    endpoint: AUTH_ENDPOINTS.social,
-    payload: { provider: providerName, role: ROLES.USER, idToken },
-    firebaseUser: credential.user,
-    requestedRole: ROLES.USER,
-  });
+  return {
+    user: toAppUser(credential.user, readLocalProfile(credential.user.uid)),
+  };
 }
 
 export async function signOutUser() {
-  try {
-    await apiClient.post(AUTH_ENDPOINTS.logout);
-  } catch {
-    /* Signing out locally must never depend on backend availability. */
-  }
-
   await signOut(requireAuth());
 }
 
-export async function saveUserProfile({ username, photoURL, email, role }) {
-  const current = requireAuth().currentUser;
+export async function saveUserProfile({ username, photoURL, email }) {
+  const current = requireCurrentUser();
+  const updates = {};
 
-  if (!current) {
-    throw new Error("You need to be signed in to update your profile.");
-  }
-
-  if (username || photoURL !== undefined) {
+  if (username) {
     await updateProfile(current, {
-      displayName: username || current.displayName,
-      photoURL: photoURL || null,
+      displayName: username,
+      photoURL: photoURL !== undefined ? photoURL || null : current.photoURL,
     });
+    updates.name = username;
+    updates.username = username;
+  } else if (photoURL !== undefined) {
+    await updateProfile(current, { photoURL: photoURL || null });
   }
 
-  if (email && email !== current.email) {
-    await updateEmail(current, email);
+  if (photoURL !== undefined) {
+    updates.photoURL = photoURL;
   }
 
-  const idToken = await getIdToken(current);
+  if (email && email.trim().toLowerCase() !== current.email?.toLowerCase()) {
+    await updateEmail(current, email.trim());
+    updates.email = email.trim();
+  }
 
-  return syncWithBackend({
-    method: "patch",
-    endpoint: AUTH_ENDPOINTS.profile,
-    payload: { name: username, username, photoURL, email, idToken },
-    firebaseUser: current,
-    requestedRole: role ?? ROLES.USER,
-    localProfile: { name: username, username, photoURL },
-  });
+  const profile = saveProfile(current.uid, updates);
+
+  return { user: toAppUser(current, profile) };
 }
 
 export async function changeUserPassword({ currentPassword, newPassword }) {
-  const current = requireAuth().currentUser;
+  const current = requireCurrentUser();
+  const usesPassword = current.providerData?.some(
+    (provider) => provider.providerId === "password",
+  );
 
-  if (!current?.email) {
-    throw new Error("Password changes are available for email-based accounts only.");
+  if (!current.email || !usesPassword) {
+    throw new Error("Password changes are available for email/password accounts only.");
   }
 
   const credential = EmailAuthProvider.credential(current.email, currentPassword);
+
   await reauthenticateWithCredential(current, credential);
   await updatePassword(current, newPassword);
 }
 
 export async function resetUserPassword(email) {
-  await sendPasswordResetEmail(requireAuth(), email);
+  const actionCodeSettings =
+    typeof window !== "undefined"
+      ? {
+          url: `${window.location.origin}${PATHS.LOGIN}`,
+          handleCodeInApp: false,
+        }
+      : undefined;
+
+  try {
+    await sendPasswordResetEmail(requireAuth(), email.trim(), actionCodeSettings);
+  } catch (error) {
+    // Do not reveal whether an account exists for the address.
+    if (error?.code === "auth/user-not-found") return;
+
+    throw error;
+  }
 }
 
 export async function uploadProfilePhoto(file) {
-  const current = requireAuth().currentUser;
-
-  if (!current) {
-    throw new Error("Sign in before uploading a profile photo.");
-  }
+  const current = requireCurrentUser();
 
   if (!file?.type?.startsWith("image/")) {
     throw new Error("Please choose an image file for your profile photo.");
@@ -254,28 +293,18 @@ export async function uploadProfilePhoto(file) {
 
   const storage = getStorage(app);
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const photoRef = ref(storage, `profile-photos/${current.uid}/${Date.now()}-${safeName}`);
+  const photoRef = ref(
+    storage,
+    `profile-photos/${current.uid}/${Date.now()}-${safeName}`,
+  );
 
   await uploadBytes(photoRef, file, { contentType: file.type });
 
   return getDownloadURL(photoRef);
 }
 
-export async function getFreshToken() {
+export async function getFreshToken(forceRefresh = false) {
   const current = auth?.currentUser;
 
-  return current ? getIdToken(current, true) : null;
-}
-
-export async function refreshBackendToken() {
-  const token = await apiClient
-    .post(AUTH_ENDPOINTS.refresh)
-    .then(({ data }) => {
-      const body = unwrap(data);
-
-      return body?.token ?? body?.accessToken ?? (typeof body === "string" ? body : null);
-    })
-    .catch(() => null);
-
-  return token ?? (env.VITE_ALLOW_FIREBASE_ONLY_AUTH ? getFreshToken() : null);
+  return current ? getIdToken(current, forceRefresh) : null;
 }

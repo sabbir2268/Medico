@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { CART_CHANGE_EVENT, getCartCount } from "@/features/shop/utils/cart";
 import { PATHS } from "@/utils/paths";
 
 const LANGUAGES = [
@@ -24,10 +25,6 @@ const LANGUAGES = [
   { code: "ar", label: "العربية" },
   { code: "hi", label: "हिन्दी" },
 ];
-
-function scrollToSection(id) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
 
 function navLinkClass({ isActive }) {
   return cn(
@@ -69,6 +66,7 @@ function Navbar() {
   const [languageOpen, setLanguageOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(() => getCartCount());
   const [language, setLanguage] = useState("en");
 
   const languageRef = useRef(null);
@@ -78,6 +76,16 @@ function Navbar() {
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
+
+  useEffect(() => {
+    function handleCartChange(event) {
+      setCartCount(event.detail?.count ?? getCartCount());
+    }
+
+    window.addEventListener(CART_CHANGE_EVENT, handleCartChange);
+
+    return () => window.removeEventListener(CART_CHANGE_EVENT, handleCartChange);
+  }, []);
 
   useEffect(() => {
     function handlePointerDown(event) {
@@ -94,11 +102,6 @@ function Navbar() {
     setLanguage(code);
     setLanguageOpen(false);
     setMobileOpen(false);
-  }
-
-  function goToSection(id) {
-    setMobileOpen(false);
-    scrollToSection(id);
   }
 
   const initials = (user?.name ?? user?.email ?? "GU")
@@ -137,20 +140,12 @@ function Navbar() {
           <NavLink to={PATHS.HOME} className={navLinkClass} end>
             Home
           </NavLink>
-          <button
-            type="button"
-            onClick={() => goToSection("medicines")}
-            className="rounded-control px-3 py-2 text-sm font-medium text-foreground transition hover:bg-hover"
-          >
+          <NavLink to={PATHS.SHOP} className={navLinkClass}>
             Shop
-          </button>
-          <button
-            type="button"
-            onClick={() => goToSection("deals")}
-            className="rounded-control px-3 py-2 text-sm font-medium text-foreground transition hover:bg-hover"
-          >
-            Deals
-          </button>
+          </NavLink>
+          <NavLink to={PATHS.CATEGORIES} className={navLinkClass}>
+            Categories
+          </NavLink>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
@@ -200,9 +195,11 @@ function Navbar() {
               aria-expanded={cartOpen}
             >
               <ShoppingCart className="h-5 w-5" aria-hidden="true" />
-              <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                0
-              </span>
+              {cartCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {cartCount}
+                </span>
+              )}
             </button>
             {cartOpen && (
               <DropdownPanel
@@ -224,7 +221,10 @@ function Navbar() {
                   <Button
                     size="sm"
                     className="mt-4"
-                    onClick={() => goToSection("medicines")}
+                    onClick={() => {
+                      setCartOpen(false);
+                      navigate(PATHS.SHOP);
+                    }}
                   >
                     Browse medicines
                   </Button>
@@ -258,10 +258,7 @@ function Navbar() {
                       <p className="truncate text-xs text-muted">{user.email}</p>
                     </div>
                     <div className="pt-1.5">
-                      <MenuItem
-                        icon={UserRound}
-                        onClick={() => navigate(PATHS.PROFILE)}
-                      >
+                      <MenuItem icon={UserRound} onClick={() => navigate(PATHS.PROFILE)}>
                         Profile
                       </MenuItem>
                       <MenuItem
@@ -354,20 +351,20 @@ function Navbar() {
             >
               Home
             </NavLink>
-            <button
-              type="button"
-              onClick={() => goToSection("medicines")}
-              className="rounded-control px-3 py-2 text-left text-sm font-medium text-foreground transition hover:bg-hover"
+            <NavLink
+              to={PATHS.SHOP}
+              className={navLinkClass}
+              onClick={() => setMobileOpen(false)}
             >
               Shop
-            </button>
-            <button
-              type="button"
-              onClick={() => goToSection("deals")}
-              className="rounded-control px-3 py-2 text-left text-sm font-medium text-foreground transition hover:bg-hover"
+            </NavLink>
+            <NavLink
+              to={PATHS.CATEGORIES}
+              className={navLinkClass}
+              onClick={() => setMobileOpen(false)}
             >
-              Deals
-            </button>
+              Categories
+            </NavLink>
           </div>
 
           <div className="mt-4 border-t border-line pt-4">

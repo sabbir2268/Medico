@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { routes } from "./routes";
@@ -49,6 +49,41 @@ describe("route configuration", () => {
     renderRoute("/login");
 
     expect(screen.getByRole("heading", { level: 1, name: "Login" })).toBeInTheDocument();
+  });
+
+  it("renders the forgot password page for guests", () => {
+    renderRoute("/forgot-password");
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Forgot password" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the shop page for guests", async () => {
+    renderRoute("/shop");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Shop medicines" }),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByLabelText("Search medicines")).toBeInTheDocument(),
+    );
+  });
+
+  it("renders the categories page for guests", async () => {
+    renderRoute("/categories");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Medicine categories" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders medicines for a single category", async () => {
+    renderRoute("/categories/cat-otc");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Over-the-Counter" }),
+    ).toBeInTheDocument();
   });
 
   it("redirects unauthenticated dashboard visits to login", () => {

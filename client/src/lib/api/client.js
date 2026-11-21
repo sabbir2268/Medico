@@ -47,8 +47,14 @@ export const apiClient = axios.create({
   },
 });
 
-apiClient.interceptors.request.use((config) => {
-  const token = accessTokenGetter?.();
+apiClient.interceptors.request.use(async (config) => {
+  let token = null;
+
+  try {
+    token = await accessTokenGetter?.();
+  } catch {
+    /* A missing/expired session must not block public requests. */
+  }
 
   if (token && !config._authRetried) {
     config.headers = config.headers ?? {};
@@ -67,7 +73,13 @@ apiClient.interceptors.response.use(
       String(config?.url ?? "").startsWith(endpoint),
     );
 
-    if (status === 401 && tokenRefresher && config && !config._authRetried && !isExchange) {
+    if (
+      status === 401 &&
+      tokenRefresher &&
+      config &&
+      !config._authRetried &&
+      !isExchange
+    ) {
       config._authRetried = true;
 
       try {

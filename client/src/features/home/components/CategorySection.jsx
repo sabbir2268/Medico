@@ -3,12 +3,13 @@ import { Link } from "react-router-dom";
 import { AsyncContent, SkeletonGrid } from "@/components/shared/AsyncContent";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { Visual } from "@/components/shared/Visual";
+import { PATHS } from "@/utils/paths";
 import { useCategories } from "../hooks/useHomeData";
 
 function CategoryCard({ category }) {
   return (
     <Link
-      to={{ pathname: "/", hash: "#medicines" }}
+      to={PATHS.CATEGORY(category.id)}
       className="group flex h-full flex-col rounded-card border border-line bg-surface p-4 shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
     >
       <Visual
