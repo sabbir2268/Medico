@@ -1,17 +1,23 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
-import { LayoutDashboard, Pill, Store } from "lucide-react";
+import { useState } from "react";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Loader2,
+  LogOut,
+  Pill,
+  ShoppingBag,
+  Store,
+  UserRound,
+} from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { ROLES } from "@/constants/roles";
+import { UserAvatar } from "@/features/auth/components/UserAvatar";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { ROLE_LABELS } from "@/features/auth/constants";
+import { getAuthErrorMessage } from "@/features/auth/utils/authErrors";
 import { cn } from "@/lib/cn";
+import { notify } from "@/lib/notify";
 import { PATHS } from "@/utils/paths";
-
-const dashboardNav = [
-  {
-    label: "Overview",
-    to: PATHS.DASHBOARD,
-    icon: LayoutDashboard,
-    end: true,
-  },
-];
 
 function navLinkClass({ isActive }) {
   return cn(
@@ -32,6 +38,41 @@ function mobileNavLinkClass({ isActive }) {
 }
 
 export default function DashboardLayout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const dashboardNav = [
+    {
+      label: "Overview",
+      to: PATHS.DASHBOARD,
+      icon: LayoutDashboard,
+      end: true,
+    },
+    {
+      label: "Profile",
+      to: PATHS.PROFILE,
+      icon: UserRound,
+    },
+    ...(user?.role === ROLES.VENDOR
+      ? [{ label: "Seller", to: PATHS.SELLER, icon: ShoppingBag }]
+      : []),
+  ];
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+
+    try {
+      await logout();
+      notify.success("You have been signed out.");
+      navigate(PATHS.HOME, { replace: true });
+    } catch (error) {
+      notify.error(getAuthErrorMessage(error));
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-line bg-surface lg:flex">
@@ -59,7 +100,20 @@ export default function DashboardLayout() {
           })}
         </nav>
 
-        <div className="border-t border-line p-4">
+        <div className="space-y-1 border-t border-line p-4">
+          <Link
+            to={PATHS.PROFILE}
+            className="flex items-center gap-3 rounded-control p-2 transition-colors hover:bg-hover"
+          >
+            <UserAvatar user={user} className="h-9 w-9" />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium">{user?.name}</span>
+              <span className="block truncate text-xs text-muted">
+                {ROLE_LABELS[user?.role] ?? "User"}
+              </span>
+            </span>
+          </Link>
+
           <Link
             to={PATHS.HOME}
             className="flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-hover hover:text-foreground"
@@ -67,6 +121,20 @@ export default function DashboardLayout() {
             <Store className="h-4 w-4" aria-hidden="true" />
             Back to store
           </Link>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="flex w-full items-center gap-3 rounded-control px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-hover hover:text-foreground disabled:opacity-60"
+          >
+            {loggingOut ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+            )}
+            Sign out
+          </button>
         </div>
       </aside>
 
@@ -86,13 +154,32 @@ export default function DashboardLayout() {
             </span>
           </div>
 
-          <Link
-            to={PATHS.HOME}
-            className="inline-flex items-center gap-2 rounded-control px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-hover hover:text-foreground"
-          >
-            <Store className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Back to store</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to={PATHS.PROFILE}
+              className="flex items-center gap-2 rounded-control p-1 pr-2 transition-colors hover:bg-hover"
+              aria-label="Open profile"
+            >
+              <UserAvatar user={user} className="h-8 w-8" />
+              <span className="hidden max-w-32 truncate text-sm font-medium sm:block">
+                {user?.name}
+              </span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-control text-muted transition-colors hover:bg-hover hover:text-foreground disabled:opacity-60"
+              aria-label="Sign out"
+            >
+              {loggingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
+          </div>
         </header>
 
         <nav

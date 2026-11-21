@@ -12,7 +12,8 @@ const firebaseConfig = {
 };
 
 /**
- * Firebase is optional until an auth strategy is chosen.
+ * Firebase Authentication is the client-side identity provider. The backend
+ * still verifies Firebase ID tokens and issues its own JWT.
  * Consumers must check that `auth` is not null before using it.
  */
 export const app = isFirebaseConfigured

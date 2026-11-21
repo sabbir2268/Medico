@@ -1,0 +1,23 @@
+.home-hero-pagination .swiper-pagination-bullet {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--line);
+  opacity: 1;
+  transition:
+    width 180ms ease,
+    background-color 180ms ease;
+}
+
+.home-hero-pagination .swiper-pagination-bullet-active {
+  width: 1.5rem;
+  border-radius: 9999px;
+  background: var(--brand);
+}
+
+.home-product-swiper .swiper-slide {
+  height: auto;
+}
+
+.home-product-swiper .swiper-slide > article {
+  height: 100%;
+}

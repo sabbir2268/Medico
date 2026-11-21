@@ -47,7 +47,17 @@ const firebaseKeys = [
   env.VITE_FIREBASE_APP_ID,
 ];
 
-const configuredFirebaseKeys = firebaseKeys.filter(Boolean).length;
+function isPlaceholderValue(value) {
+  if (!value) return true;
+
+  // The checked-in .env.example uses demo values. Treat them as unconfigured
+  // so a copied file cannot initialize Firebase with invalid credentials.
+  return value.startsWith("demo") || value.includes("000000000000");
+}
+
+const configuredFirebaseKeys = firebaseKeys.filter(
+  (value) => !isPlaceholderValue(value),
+).length;
 
 if (configuredFirebaseKeys > 0 && configuredFirebaseKeys < firebaseKeys.length) {
   console.warn("Firebase configuration is incomplete. Firebase will remain disabled.");

@@ -5,17 +5,18 @@ import Home from "@/features/home/pages/Home";
 import About from "@/features/about/pages/About";
 import Login from "@/features/auth/pages/Login";
 import Register from "@/features/auth/pages/Register";
+import Profile from "@/features/auth/pages/Profile";
 import DashboardHome from "@/features/dashboard/pages/DashboardHome";
+import SellerHome from "@/features/dashboard/pages/SellerHome";
 import NotFound from "@/pages/NotFound";
 import ErrorPage from "@/pages/ErrorPage";
-import { PrivateRoute, PublicRoute } from "@/routes";
+import { PrivateRoute, PublicRoute, RoleRoute } from "@/routes";
+import { ROLES } from "@/constants/roles";
 import { PATHS } from "@/utils/paths";
 
 /**
  * Central route map. Add customer, vendor, and admin sections inside the
- * private group. Role-scoped sections can use RoleRoute, for example:
- *
- * { element: <RoleRoute allowedRoles={[ROLES.VENDOR]} />, children: [...] }
+ * private group. Role-scoped sections use RoleRoute.
  */
 export const routes = [
   {
@@ -52,7 +53,16 @@ export const routes = [
         children: [
           {
             element: <DashboardLayout />,
-            children: [{ path: PATHS.DASHBOARD, element: <DashboardHome /> }],
+            children: [
+              { path: PATHS.DASHBOARD, element: <DashboardHome /> },
+              { path: PATHS.PROFILE, element: <Profile /> },
+              {
+                element: (
+                  <RoleRoute allowedRoles={[ROLES.VENDOR]} redirectTo={PATHS.DASHBOARD} />
+                ),
+                children: [{ path: PATHS.SELLER, element: <SellerHome /> }],
+              },
+            ],
           },
         ],
       },

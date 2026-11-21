@@ -10,7 +10,11 @@ export default function PublicRoute() {
   if (loading) return <Loader label="Loading..." />;
 
   if (user) {
-    const redirectTo = location.state?.from?.pathname ?? PATHS.DASHBOARD;
+    const from = location.state?.from;
+    const redirectTo = from
+      ? `${from.pathname}${from.search ?? ""}${from.hash ?? ""}`
+      : PATHS.DASHBOARD;
+
     return <Navigate to={redirectTo} replace />;
   }
 
