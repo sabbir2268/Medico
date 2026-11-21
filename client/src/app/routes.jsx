@@ -6,9 +6,12 @@ import About from "@/features/about/pages/About";
 import Login from "@/features/auth/pages/Login";
 import Register from "@/features/auth/pages/Register";
 import DashboardHome from "@/features/dashboard/pages/DashboardHome";
+import SellerHome from "@/features/dashboard/pages/SellerHome";
+import Profile from "@/features/auth/pages/Profile";
 import NotFound from "@/pages/NotFound";
 import ErrorPage from "@/pages/ErrorPage";
-import { PrivateRoute, PublicRoute } from "@/routes";
+import { ROLES } from "@/constants/roles";
+import { PrivateRoute, PublicRoute, RoleRoute } from "@/routes";
 import { PATHS } from "@/utils/paths";
 
 /**
@@ -52,7 +55,14 @@ export const routes = [
         children: [
           {
             element: <DashboardLayout />,
-            children: [{ path: PATHS.DASHBOARD, element: <DashboardHome /> }],
+            children: [
+              { path: PATHS.DASHBOARD, element: <DashboardHome /> },
+              { path: PATHS.PROFILE, element: <Profile /> },
+              {
+                element: <RoleRoute allowedRoles={[ROLES.SELLER]} />,
+                children: [{ path: PATHS.SELLER, element: <SellerHome /> }],
+              },
+            ],
           },
         ],
       },

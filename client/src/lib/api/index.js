@@ -1,2 +1,2 @@
-export { apiClient, setAccessTokenGetter } from "./client";
+export { apiClient, setAccessTokenGetter, setTokenRefresher } from "./client";
 export { ApiError, normalizeApiError } from "./errors";

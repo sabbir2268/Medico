@@ -1,5 +1,9 @@
 /* 1. Tailwind v4: CSS-first configuration. No tailwind.config.js is needed. */
 @import "tailwindcss";
+@import "swiper/css";
+@import "swiper/css/navigation";
+@import "swiper/css/pagination";
+@import "swiper/css/effect-fade";
 
 /* 2. Class-based dark mode, driven by .dark on <html>. */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -129,4 +133,36 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+}
+
+/* 8. Swiper controls tuned to the teal design system. */
+.hero-pagination .swiper-pagination-bullet {
+  width: 8px;
+  height: 8px;
+  margin: 0 !important;
+  background: var(--brand);
+  opacity: 0.3;
+  border-radius: 9999px;
+  transition:
+    width 250ms ease,
+    opacity 250ms ease;
+}
+
+.hero-pagination .swiper-pagination-bullet-active {
+  width: 26px;
+  opacity: 1;
+}
+
+.hero-pagination .swiper-pagination-bullet:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.deals-swiper,
+.hero-swiper {
+  width: 100%;
+}
+
+.deals-swiper .swiper-slide {
+  height: auto;
 }

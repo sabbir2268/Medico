@@ -2,7 +2,16 @@ import axios from "axios";
 import { env } from "@/config/env";
 import { normalizeApiError } from "./errors";
 
+const AUTH_EXCHANGE_ENDPOINTS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/social",
+  "/auth/refresh",
+];
+
 let accessTokenGetter = null;
+let tokenRefresher = null;
+let refreshPromise = null;
 
 /**
  * Lets the future auth layer provide a token without coupling the API client
@@ -10,6 +19,23 @@ let accessTokenGetter = null;
  */
 export function setAccessTokenGetter(getter) {
   accessTokenGetter = typeof getter === "function" ? getter : null;
+}
+
+export function setTokenRefresher(refresher) {
+  tokenRefresher = typeof refresher === "function" ? refresher : null;
+  refreshPromise = null;
+}
+
+function refreshAccessToken() {
+  if (!refreshPromise) {
+    refreshPromise = Promise.resolve(tokenRefresher())
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
 }
 
 export const apiClient = axios.create({
@@ -24,7 +50,7 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token = accessTokenGetter?.();
 
-  if (token) {
+  if (token && !config._authRetried) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -34,7 +60,31 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(normalizeApiError(error)),
+  async (error) => {
+    const config = error.config;
+    const status = error.response?.status;
+    const isExchange = AUTH_EXCHANGE_ENDPOINTS.some((endpoint) =>
+      String(config?.url ?? "").startsWith(endpoint),
+    );
+
+    if (status === 401 && tokenRefresher && config && !config._authRetried && !isExchange) {
+      config._authRetried = true;
+
+      try {
+        const token = await refreshAccessToken();
+
+        if (token) {
+          config.headers = config.headers ?? {};
+          config.headers.Authorization = `Bearer ${token}`;
+          return apiClient(config);
+        }
+      } catch {
+        return Promise.reject(normalizeApiError(error));
+      }
+    }
+
+    return Promise.reject(normalizeApiError(error));
+  },
 );
 
 export default apiClient;

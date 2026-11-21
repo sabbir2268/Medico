@@ -1,49 +1,77 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/Button";
+import { FormField, PasswordField } from "@/features/auth/components/FormFields";
+import { AuthDivider, SocialButtons } from "@/features/auth/components/SocialButtons";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { loginSchema } from "@/features/auth/schemas/authSchemas";
 import { PATHS } from "@/utils/paths";
 
 function Login() {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login, loginWithGoogle, loginWithGitHub, submitting } = useAuth();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const redirectTo = location.state?.from?.pathname ?? PATHS.DASHBOARD;
+
+  const onSubmit = async (values) => {
+    const result = await login(values);
+
+    if (result) navigate(redirectTo, { replace: true });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault(); // stop the browser's default page reload
-    console.log("Login data:", formData); // real API call comes in a later phase
+  const onSocialLogin = async (provider) => {
+    const result = await provider();
+
+    if (result) navigate(redirectTo, { replace: true });
   };
 
   return (
     <div className="rounded-card border border-line bg-surface p-6 shadow-card">
-      <h1 className="mb-6 text-2xl font-bold">Login</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="email"
+      <h1 className="text-2xl font-bold">Login</h1>
+      <p className="mt-1 text-sm text-muted">Sign in to continue to Medico.</p>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
+        <FormField
+          label="Email"
           name="email"
-          placeholder="Email"
+          type="email"
+          placeholder="you@example.com"
           autoComplete="email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          className="w-full rounded-control border border-input bg-surface px-3 py-2 text-foreground placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-ring/30 focus:outline-none"
+          error={errors.email}
+          {...register("email")}
         />
-        <input
-          type="password"
+        <PasswordField
+          label="Password"
           name="password"
-          placeholder="Password"
+          placeholder="Enter your password"
           autoComplete="current-password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-          className="w-full rounded-control border border-input bg-surface px-3 py-2 text-foreground placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-ring/30 focus:outline-none"
+          error={errors.password}
+          {...register("password")}
         />
-        <Button type="submit" className="w-full">
-          Login
+        <Button type="submit" className="w-full" disabled={submitting}>
+          {submitting ? "Signing in..." : "Login"}
         </Button>
       </form>
-      <p className="mt-4 text-sm text-muted">
+
+      <AuthDivider />
+
+      <SocialButtons
+        onGoogle={() => onSocialLogin(loginWithGoogle)}
+        onGitHub={() => onSocialLogin(loginWithGitHub)}
+        disabled={submitting}
+      />
+
+      <p className="mt-6 text-center text-sm text-muted">
         No account?{" "}
         <Link to={PATHS.REGISTER} className="text-primary hover:underline">
           Register

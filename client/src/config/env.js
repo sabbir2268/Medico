@@ -20,6 +20,15 @@ function readPositiveNumber(key, fallback) {
   return value;
 }
 
+function readBoolean(key, fallback) {
+  const value = readString(key, String(fallback)).toLowerCase();
+
+  if (value === "true" || value === "1") return true;
+  if (value === "false" || value === "0") return false;
+
+  return fallback;
+}
+
 const apiUrl = readString("VITE_API_URL", "/api");
 
 if (!apiUrl) {
@@ -30,12 +39,14 @@ export const env = {
   VITE_APP_NAME: readString("VITE_APP_NAME", "Medico"),
   VITE_API_URL: apiUrl,
   VITE_API_TIMEOUT: readPositiveNumber("VITE_API_TIMEOUT", 15000),
+  VITE_USE_FALLBACK_DATA: readBoolean("VITE_USE_FALLBACK_DATA", true),
   VITE_FIREBASE_API_KEY: readString("VITE_FIREBASE_API_KEY"),
   VITE_FIREBASE_AUTH_DOMAIN: readString("VITE_FIREBASE_AUTH_DOMAIN"),
   VITE_FIREBASE_PROJECT_ID: readString("VITE_FIREBASE_PROJECT_ID"),
   VITE_FIREBASE_STORAGE_BUCKET: readString("VITE_FIREBASE_STORAGE_BUCKET"),
   VITE_FIREBASE_MESSAGING_SENDER_ID: readString("VITE_FIREBASE_MESSAGING_SENDER_ID"),
   VITE_FIREBASE_APP_ID: readString("VITE_FIREBASE_APP_ID"),
+  VITE_ALLOW_FIREBASE_ONLY_AUTH: readBoolean("VITE_ALLOW_FIREBASE_ONLY_AUTH", true),
   VITE_PAYMENT_KEY: readString("VITE_PAYMENT_KEY"),
   VITE_IMAGE_UPLOAD_KEY: readString("VITE_IMAGE_UPLOAD_KEY"),
 };
