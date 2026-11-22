@@ -22,6 +22,16 @@ import Orders from "@/features/dashboard/pages/Orders";
 import OrderDetails from "@/features/dashboard/pages/OrderDetails";
 import Payments from "@/features/dashboard/pages/Payments";
 import Security from "@/features/dashboard/pages/Security";
+import AdminUsers from "@/features/admin/pages/AdminUsers";
+import AdminSellers from "@/features/admin/pages/AdminSellers";
+import AdminCategories from "@/features/admin/pages/AdminCategories";
+import AdminMedicines from "@/features/admin/pages/AdminMedicines";
+import AdminOrders from "@/features/admin/pages/AdminOrders";
+import AdminPayments from "@/features/admin/pages/AdminPayments";
+import AdminReports from "@/features/admin/pages/AdminReports";
+import AdminAdvertisements from "@/features/admin/pages/AdminAdvertisements";
+import AdminHealthTips from "@/features/admin/pages/AdminHealthTips";
+import AdminAuditLogs from "@/features/admin/pages/AdminAuditLogs";
 import Profile from "@/features/auth/pages/Profile";
 import NotFound from "@/pages/NotFound";
 import ErrorPage from "@/pages/ErrorPage";
@@ -107,6 +117,16 @@ export const routes = [
                 element: <RoleRoute allowedRoles={[ROLES.ADMIN]} />,
                 children: [
                   { path: PATHS.ADMIN, element: <AdminOverview /> },
+                  { path: PATHS.ADMIN_USERS, element: <AdminUsers /> },
+                  { path: PATHS.ADMIN_SELLERS, element: <AdminSellers /> },
+                  { path: PATHS.ADMIN_CATEGORIES, element: <AdminCategories /> },
+                  { path: PATHS.ADMIN_MEDICINES, element: <AdminMedicines /> },
+                  { path: PATHS.ADMIN_ORDERS, element: <AdminOrders /> },
+                  { path: PATHS.ADMIN_PAYMENTS, element: <AdminPayments /> },
+                  { path: PATHS.ADMIN_REPORTS, element: <AdminReports /> },
+                  { path: PATHS.ADMIN_ADS, element: <AdminAdvertisements /> },
+                  { path: PATHS.ADMIN_TIPS, element: <AdminHealthTips /> },
+                  { path: PATHS.ADMIN_AUDIT, element: <AdminAuditLogs /> },
                 ],
               },
             ],

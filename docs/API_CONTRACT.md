@@ -318,6 +318,45 @@ Only orders with status `pending` or `processing` **and** `paymentStatus !== pai
 may be cancelled. Paid orders require a refund flow (not yet implemented) and
 return `409 ORDER_NOT_CANCELLABLE`.
 
+## Admin endpoints
+
+All admin endpoints require a verified `admin` role; non-admins receive `403 FORBIDDEN`.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/api/admin/dashboard` | Revenue, orders, users, sellers, medicines, pending approvals |
+| GET | `/api/admin/analytics` | `from`, `to`; daily revenue/orders from verified payments |
+| GET | `/api/admin/users` | `page`, `limit`, `search`, `role`, `status` |
+| PATCH | `/api/admin/users/:id/role` | `{ role }` |
+| PATCH | `/api/admin/users/:id/status` | `{ isActive }`; blocks token version |
+| DELETE | `/api/admin/users/:id` | Soft delete; order/payment history preserved |
+| GET | `/api/admin/sellers` | `page`, `limit`, `search`, `status` |
+| PATCH | `/api/admin/sellers/:id/status` | `{ sellerStatus, reason? }` |
+| GET | `/api/admin/categories` | `page`, `limit`, `search` |
+| POST | `/api/admin/categories` | `{ name, slug?, description?, isActive? }` |
+| PATCH | `/api/admin/categories/:id` | Partial update (no default resets) |
+| DELETE | `/api/admin/categories/:id` | `409 CATEGORY_IN_USE` when medicines reference it |
+| GET | `/api/admin/medicines` | `page`, `limit`, `search`, `status` |
+| PATCH | `/api/admin/medicines/:id/status` | `{ status: approved|hidden|inactive|active|rejected, reason? }` |
+| GET | `/api/admin/orders` | `page`, `limit`, `search`, `status`, `from`, `to` |
+| GET | `/api/admin/payments` | `page`, `limit`, `status`, `from`, `to` |
+| GET | `/api/admin/reports/sales` | `from`, `to`, `format=json|csv|pdf` |
+| GET | `/api/admin/advertisements` | All ads with review status |
+| PATCH | `/api/admin/advertisements/:id/status` | `{ status, reason? }`; reason required for rejection |
+| GET | `/api/admin/health-tips` | `page`, `limit`, `search` |
+| POST/PATCH/DELETE | `/api/admin/health-tips[/:id]` | Tip CRUD |
+| GET | `/api/admin/audit-logs` | `page`, `limit` |
+
+Sensitive actions (role/status changes, approvals, category/medicines/tip changes,
+user removal) are written to `AuditLog` with admin id, IP and user agent.
+
+Protections:
+- role changes and self-block/self-delete return `400 CANNOT_MODIFY_SELF`;
+- demoting/blocking/deleting the last active admin returns `409 LAST_ADMIN`;
+- user deletion is soft, so historical orders and payments are never removed;
+- public ads require `status: approved`, and public medicines require
+  `isApproved: true` and `isHidden !== true`.
+
 ## Security rules
 
 - Never trust `role`, `price`, `discount`, `seller` or totals from a request body.

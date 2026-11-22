@@ -11,6 +11,7 @@ export function ConfirmDialog({
   loading = false,
   onConfirm,
   onCancel,
+  children,
 }) {
   const confirmRef = useRef(null);
 
@@ -45,6 +46,7 @@ export function ConfirmDialog({
           {title}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted">{description}</p>
+        {children}
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="outline" onClick={onCancel} disabled={loading}>
             {cancelLabel}

@@ -1,7 +1,14 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   CreditCard,
+  FileBarChart,
+  HeartPulse,
   LayoutDashboard,
+  Megaphone,
+  PackageCheck,
+  ScrollText,
+  Tags,
+  UsersRound,
   LockKeyhole,
   LogOut,
   Package,
@@ -44,6 +51,20 @@ const dashboardNav = [
   },
 ];
 
+const adminNav = [
+  { label: "Overview", to: PATHS.ADMIN, icon: LayoutDashboard, end: true },
+  { label: "Users", to: PATHS.ADMIN_USERS, icon: UsersRound },
+  { label: "Sellers", to: PATHS.ADMIN_SELLERS, icon: Store },
+  { label: "Categories", to: PATHS.ADMIN_CATEGORIES, icon: Tags },
+  { label: "Medicines", to: PATHS.ADMIN_MEDICINES, icon: Pill },
+  { label: "Orders", to: PATHS.ADMIN_ORDERS, icon: PackageCheck },
+  { label: "Payments", to: PATHS.ADMIN_PAYMENTS, icon: CreditCard },
+  { label: "Reports", to: PATHS.ADMIN_REPORTS, icon: FileBarChart },
+  { label: "Advertisements", to: PATHS.ADMIN_ADS, icon: Megaphone },
+  { label: "Health tips", to: PATHS.ADMIN_TIPS, icon: HeartPulse },
+  { label: "Audit log", to: PATHS.ADMIN_AUDIT, icon: ScrollText },
+];
+
 function navLinkClass({ isActive }) {
   return cn(
     "flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors",
@@ -66,9 +87,11 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const { user, logout, submitting } = useAuth();
   const navItems =
-    user?.role === ROLES.SELLER
-      ? [...dashboardNav, { label: "Seller tools", to: PATHS.SELLER, icon: Store }]
-      : dashboardNav;
+    user?.role === ROLES.ADMIN
+      ? adminNav
+      : user?.role === ROLES.SELLER
+        ? [...dashboardNav, { label: "Seller tools", to: PATHS.SELLER, icon: Store }]
+        : dashboardNav;
 
   const onLogout = async () => {
     await logout();

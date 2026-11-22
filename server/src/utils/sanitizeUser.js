@@ -21,6 +21,7 @@ export function sanitizeUser(user) {
       country: 'Bangladesh',
     },
     role: source.role,
+    sellerStatus: source.sellerStatus ?? 'approved',
     isActive: source.isActive !== false,
     createdAt: source.createdAt ?? null,
     updatedAt: source.updatedAt ?? null,

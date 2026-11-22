@@ -22,6 +22,8 @@ const medicineSchema = new Schema(
     stock: { type: Number, required: true, default: 0, min: 0 },
 
     status: { type: String, enum: MEDICINE_STATUSES, default: 'active', index: true },
+    isApproved: { type: Boolean, default: true, index: true },
+    isHidden: { type: Boolean, default: false, index: true },
     isFeatured: { type: Boolean, default: false, index: true },
     isAdvertised: { type: Boolean, default: false },
     prescriptionRequired: { type: Boolean, default: false },

@@ -16,6 +16,8 @@ async function loadAvailableMedicine(medicineId) {
     _id: medicineId,
     status: 'active',
     stock: { $gt: 0 },
+    isApproved: true,
+    isHidden: { $ne: true },
   })
     .populate({ path: 'category', match: { isActive: true } })
     .populate('seller', 'username displayName');

@@ -44,10 +44,17 @@ const userSchema = new Schema(
       country: { type: String, trim: true, default: 'Bangladesh' },
     },
     role: { type: String, enum: USER_ROLES, default: ROLES.USER, index: true },
+    sellerStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'suspended', 'rejected'],
+      default: 'approved',
+      index: true,
+    },
     isActive: { type: Boolean, default: true },
     provider: { type: String, default: 'password' },
     tokenVersion: { type: Number, default: 0, min: 0 },
     lastLoginAt: { type: Date, default: null },
+    deletedAt: { type: Date, default: null },
   },
   {
     timestamps: true,

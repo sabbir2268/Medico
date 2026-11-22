@@ -114,7 +114,7 @@ async function resolveCategoryFilter(category) {
 }
 
 function buildMedicinePipeline({ search, categoryId, sort, minPrice, maxPrice, featured, discounted, advertised }) {
-  const match = { status: 'active', stock: { $gt: 0 } };
+  const match = { status: 'active', stock: { $gt: 0 }, isApproved: true, isHidden: { $ne: true } };
   if (categoryId) match.category = categoryId;
   if (featured) match.isFeatured = true;
   if (advertised) match.isAdvertised = true;
@@ -221,6 +221,8 @@ export async function getMedicineById(id) {
     _id: id,
     status: 'active',
     stock: { $gt: 0 },
+    isApproved: true,
+    isHidden: { $ne: true },
   })
     .populate({ path: 'category', match: { isActive: true } })
     .populate('seller', 'username displayName photoURL');
