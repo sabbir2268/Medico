@@ -23,7 +23,18 @@ export function sendError(res, { message = 'Something went wrong', statusCode = 
   return res.status(statusCode).json(body);
 }
 
+/** Standard envelope for every paginated list endpoint. */
+export function sendPaginated(res, { items = [], pagination, message = 'Success', statusCode = 200, meta } = {}) {
+  return sendSuccess(res, {
+    statusCode,
+    message,
+    meta,
+    data: { items, pagination },
+  });
+}
+
 export const ApiResponse = Object.freeze({
   success: sendSuccess,
   error: sendError,
+  paginated: sendPaginated,
 });

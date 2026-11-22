@@ -2,10 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { homeKeys } from "../constants/queryKeys";
 import {
   getAdvertisedMedicines,
+  getAdvertisements,
   getCategories,
   getDiscountedMedicines,
   getFeaturedMedicines,
   getHealthTips,
+  getHomeOverview,
 } from "../services/homeServices";
 
 const queryOptions = {
@@ -23,6 +25,14 @@ function useHomeCollection(queryKey, queryFn) {
     isFallback: Boolean(query.data?.isFallback),
     isEmpty: !query.isPending && !query.isError && items.length === 0,
   };
+}
+
+export function useHomeOverview() {
+  return useQuery({ queryKey: homeKeys.overview(), queryFn: getHomeOverview, ...queryOptions });
+}
+
+export function useAdvertisements() {
+  return useHomeCollection(homeKeys.advertisements(), getAdvertisements);
 }
 
 export function useAdvertisedMedicines() {

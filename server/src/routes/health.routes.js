@@ -2,6 +2,9 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import { env } from '../config/env.js';
 import { getDatabaseStatus } from '../config/database.js';
+import { isFirebaseAdminConfigured } from '../config/firebaseAdmin.js';
+import { isStripeConfigured } from '../config/stripe.js';
+import { isCloudinaryConfigured } from '../config/cloudinary.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
@@ -32,6 +35,11 @@ router.get(
         nodeVersion: process.version,
       },
       database,
+      features: {
+        auth: { firebaseAdmin: isFirebaseAdminConfigured },
+        payments: { stripe: isStripeConfigured },
+        storage: { cloudinary: isCloudinaryConfigured },
+      },
     };
 
     if (!isDatabaseHealthy) {

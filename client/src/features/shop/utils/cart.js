@@ -60,3 +60,21 @@ export function addToCart(medicine) {
 export function getCartItems() {
   return readCart();
 }
+
+/** Clears the local guest cart after it has been merged into the user's cart. */
+export function clearLocalCart() {
+  return writeCart([]);
+}
+
+/** Replaces the local cart with a backend cart snapshot (used after logout). */
+export function setLocalCartItems(items) {
+  return writeCart(
+    (items ?? []).map((item) => ({
+      id: item.medicineId ?? item.id,
+      name: item.medicine?.name ?? "Medicine",
+      image: item.medicine?.image ?? null,
+      price: item.unitPrice ?? 0,
+      quantity: item.quantity,
+    })),
+  );
+}

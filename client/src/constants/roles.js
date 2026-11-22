@@ -28,3 +28,15 @@ export function normalizeAssignableRole(role) {
 export function isPrivilegedRole(role) {
   return role === ROLES.ADMIN || role === ROLES.PHARMACIST;
 }
+
+/** Roles that may only arrive from a trusted backend response. */
+export const SERVER_ROLES = Object.freeze([
+  ROLES.USER,
+  ROLES.SELLER,
+  ROLES.ADMIN,
+  ROLES.PHARMACIST,
+]);
+
+export function normalizeServerRole(role) {
+  return SERVER_ROLES.includes(role) ? role : ROLES.USER;
+}

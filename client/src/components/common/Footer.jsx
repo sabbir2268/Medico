@@ -8,6 +8,8 @@ import { PATHS } from "@/utils/paths";
 
 const SHOP_LINKS = [
   { label: "All medicines", to: PATHS.SHOP },
+  { label: "Today's deals", to: PATHS.DEALS },
+  { label: "Your cart", to: PATHS.CART },
   { label: "Prescription medicines", to: PATHS.CATEGORIES },
   { label: "Over-the-counter", to: PATHS.CATEGORIES },
   { label: "Vitamins & supplements", to: PATHS.CATEGORIES },

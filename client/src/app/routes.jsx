@@ -4,6 +4,8 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Home from "@/features/home/pages/Home";
 import About from "@/features/about/pages/About";
 import Shop from "@/features/shop/pages/Shop";
+import Deals from "@/features/shop/pages/Deals";
+import Cart from "@/features/cart/pages/Cart";
 import Categories from "@/features/shop/pages/Categories";
 import CategoryMedicines from "@/features/shop/pages/CategoryMedicines";
 import Login from "@/features/auth/pages/Login";
@@ -11,6 +13,7 @@ import Register from "@/features/auth/pages/Register";
 import ForgotPassword from "@/features/auth/pages/ForgotPassword";
 import DashboardHome from "@/features/dashboard/pages/DashboardHome";
 import SellerHome from "@/features/dashboard/pages/SellerHome";
+import AdminOverview from "@/features/dashboard/pages/AdminOverview";
 import Profile from "@/features/auth/pages/Profile";
 import NotFound from "@/pages/NotFound";
 import ErrorPage from "@/pages/ErrorPage";
@@ -36,6 +39,8 @@ export const routes = [
           { index: true, element: <Home /> },
           { path: "about", element: <About /> },
           { path: PATHS.SHOP, element: <Shop /> },
+          { path: PATHS.DEALS, element: <Deals /> },
+          { path: PATHS.CART, element: <Cart /> },
           { path: PATHS.CATEGORIES, element: <Categories /> },
           { path: PATHS.CATEGORY_MEDICINES, element: <CategoryMedicines /> },
           { path: "*", element: <NotFound /> },
@@ -69,6 +74,12 @@ export const routes = [
               {
                 element: <RoleRoute allowedRoles={[ROLES.SELLER]} />,
                 children: [{ path: PATHS.SELLER, element: <SellerHome /> }],
+              },
+              {
+                element: <RoleRoute allowedRoles={[ROLES.ADMIN]} />,
+                children: [
+                  { path: PATHS.ADMIN, element: <AdminOverview /> },
+                ],
               },
             ],
           },

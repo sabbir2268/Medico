@@ -119,11 +119,15 @@ export async function getMedicines({
   sort = "",
   page = 1,
   limit = DEFAULT_PAGE_SIZE,
+  minPrice,
+  maxPrice,
 } = {}) {
   const requestParams = {
     ...(search ? { search } : {}),
     ...(category ? { category } : {}),
     ...(sort ? { sort: sortToApiValue(sort) } : {}),
+    ...(minPrice !== undefined && minPrice !== "" ? { minPrice } : {}),
+    ...(maxPrice !== undefined && maxPrice !== "" ? { maxPrice } : {}),
     page,
     limit,
   };
@@ -144,4 +148,40 @@ export async function getMedicines({
 
     return getFallbackMedicines({ search, category, sort, page, limit });
   }
+}
+
+/** GET /api/medicines/:id — returns the full trusted product record. */
+export async function getMedicineById(id) {
+  const { data } = await apiClient.get(SHOP_ENDPOINTS.medicine(id));
+  return unwrap(data)?.medicine ?? null;
+}
+
+/** GET /api/categories — active categories for filters. */
+export async function getCategories() {
+  const { data } = await apiClient.get(SHOP_ENDPOINTS.categories, {
+    params: { active: true },
+  });
+  return unwrap(data)?.items ?? [];
+}
+
+/** GET /api/categories/:id — a single active category. */
+export async function getCategoryById(id) {
+  const { data } = await apiClient.get(SHOP_ENDPOINTS.category(id));
+  return unwrap(data)?.category ?? null;
+}
+
+/** GET /api/categories/:id/medicines — category-scoped catalog. */
+export async function getCategoryMedicines(id, params = {}) {
+  const { data } = await apiClient.get(SHOP_ENDPOINTS.categoryMedicines(id), { params });
+  const body = unwrap(data);
+
+  return {
+    items: normalizeItems(body),
+    pagination: normalizePagination(body, {
+      page: params.page ?? 1,
+      limit: params.limit ?? DEFAULT_PAGE_SIZE,
+      total: 0,
+    }),
+    isFallback: false,
+  };
 }

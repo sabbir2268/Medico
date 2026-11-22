@@ -16,6 +16,7 @@ import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { CART_CHANGE_EVENT, getCartCount } from "@/features/shop/utils/cart";
+import { useCart } from "@/features/cart/hooks/useCart";
 import { PATHS } from "@/utils/paths";
 
 const LANGUAGES = [
@@ -68,6 +69,7 @@ function Navbar() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cartCount, setCartCount] = useState(() => getCartCount());
   const [language, setLanguage] = useState("en");
+  const { cart: backendCart, isGuest } = useCart();
 
   const languageRef = useRef(null);
   const accountRef = useRef(null);
@@ -103,6 +105,9 @@ function Navbar() {
     setLanguageOpen(false);
     setMobileOpen(false);
   }
+
+  const displayCartCount = isGuest ? cartCount : backendCart.itemCount;
+  const cartItems = isGuest ? [] : backendCart.items;
 
   const initials = (user?.name ?? user?.email ?? "GU")
     .split(" ")
@@ -142,6 +147,9 @@ function Navbar() {
           </NavLink>
           <NavLink to={PATHS.SHOP} className={navLinkClass}>
             Shop
+          </NavLink>
+          <NavLink to={PATHS.DEALS} className={navLinkClass}>
+            Deals
           </NavLink>
           <NavLink to={PATHS.CATEGORIES} className={navLinkClass}>
             Categories
@@ -195,9 +203,9 @@ function Navbar() {
               aria-expanded={cartOpen}
             >
               <ShoppingCart className="h-5 w-5" aria-hidden="true" />
-              {cartCount > 0 && (
+              {displayCartCount > 0 && (
                 <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                  {cartCount}
+                  {displayCartCount}
                 </span>
               )}
             </button>
@@ -210,25 +218,51 @@ function Navbar() {
                 <h3 className="font-heading text-sm font-semibold text-foreground">
                   Your cart
                 </h3>
-                <div className="mt-4 flex flex-col items-center rounded-control border border-dashed border-line px-3 py-6 text-center">
-                  <ShoppingCart className="h-6 w-6 text-muted" aria-hidden="true" />
-                  <p className="mt-2 text-sm font-medium text-foreground">
-                    Your cart is empty
-                  </p>
-                  <p className="mt-1 text-xs text-muted">
-                    Add medicines from verified vendors to get started.
-                  </p>
-                  <Button
-                    size="sm"
-                    className="mt-4"
-                    onClick={() => {
-                      setCartOpen(false);
-                      navigate(PATHS.SHOP);
-                    }}
-                  >
-                    Browse medicines
-                  </Button>
-                </div>
+                {cartItems.length > 0 ? (
+                  <div className="mt-3 space-y-2">
+                    {cartItems.slice(0, 3).map((item) => (
+                      <div
+                        key={item.medicineId}
+                        className="flex items-center justify-between gap-2 rounded-control bg-hover px-2.5 py-2 text-xs"
+                      >
+                        <span className="min-w-0 truncate font-medium text-foreground">
+                          {item.medicine?.name ?? "Medicine"}
+                        </span>
+                        <span className="shrink-0 text-muted">×{item.quantity}</span>
+                      </div>
+                    ))}
+                    <Button
+                      size="sm"
+                      className="mt-2 w-full"
+                      onClick={() => {
+                        setCartOpen(false);
+                        navigate(PATHS.CART);
+                      }}
+                    >
+                      View cart · {displayCartCount} items
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex flex-col items-center rounded-control border border-dashed border-line px-3 py-6 text-center">
+                    <ShoppingCart className="h-6 w-6 text-muted" aria-hidden="true" />
+                    <p className="mt-2 text-sm font-medium text-foreground">
+                      Your cart is empty
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      Add medicines from verified vendors to get started.
+                    </p>
+                    <Button
+                      size="sm"
+                      className="mt-4"
+                      onClick={() => {
+                        setCartOpen(false);
+                        navigate(PATHS.SHOP);
+                      }}
+                    >
+                      Browse medicines
+                    </Button>
+                  </div>
+                )}
               </DropdownPanel>
             )}
           </div>
@@ -359,11 +393,25 @@ function Navbar() {
               Shop
             </NavLink>
             <NavLink
+              to={PATHS.DEALS}
+              className={navLinkClass}
+              onClick={() => setMobileOpen(false)}
+            >
+              Deals
+            </NavLink>
+            <NavLink
               to={PATHS.CATEGORIES}
               className={navLinkClass}
               onClick={() => setMobileOpen(false)}
             >
               Categories
+            </NavLink>
+            <NavLink
+              to={PATHS.CART}
+              className={navLinkClass}
+              onClick={() => setMobileOpen(false)}
+            >
+              Cart ({displayCartCount})
             </NavLink>
           </div>
 

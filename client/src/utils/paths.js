@@ -5,10 +5,13 @@ export const PATHS = {
   REGISTER: "/register",
   FORGOT_PASSWORD: "/forgot-password",
   SHOP: "/shop",
+  DEALS: "/deals",
+  CART: "/cart",
   CATEGORIES: "/categories",
   CATEGORY_MEDICINES: "/categories/:categoryId",
   CATEGORY: (id) => `/categories/${encodeURIComponent(id)}`,
   DASHBOARD: "/dashboard",
   PROFILE: "/dashboard/profile",
   SELLER: "/dashboard/seller",
+  ADMIN: "/dashboard/admin",
 };

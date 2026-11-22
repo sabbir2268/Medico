@@ -1,8 +1,14 @@
+/**
+ * A normalized error shared by every feature. `code` and `errors` mirror the
+ * server error envelope so UI code can branch on machine-readable values.
+ */
 export class ApiError extends Error {
-  constructor(message, { status = null, details = null, cause = null } = {}) {
+  constructor(message, { status = null, code = null, errors = null, details = null, cause = null } = {}) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
+    this.errors = errors;
     this.details = details;
     this.cause = cause;
   }
@@ -29,9 +35,11 @@ export function normalizeApiError(error) {
     const status = error.response?.status ?? null;
     const details = error.response?.data ?? null;
     const responseMessage = getMessageFromResponse(details);
+    const code = details && typeof details === "object" ? details.code ?? null : null;
+    const errors = details && typeof details === "object" ? details.errors ?? null : null;
 
     if (responseMessage) {
-      return new ApiError(responseMessage, { status, details, cause: error });
+      return new ApiError(responseMessage, { status, code, errors, details, cause: error });
     }
 
     if (error.code === "ECONNABORTED") {

@@ -21,6 +21,13 @@ const TONES = {
   "hero-blue": "from-sky-700 via-blue-800 to-teal-900",
   "hero-amber": "from-amber-600 via-teal-700 to-emerald-800",
   "hero-emerald": "from-emerald-600 via-teal-700 to-cyan-800",
+  teal: "from-teal-600 via-teal-700 to-emerald-800",
+  emerald: "from-emerald-600 via-teal-700 to-cyan-800",
+  blue: "from-sky-700 via-blue-800 to-teal-900",
+  amber: "from-amber-600 via-teal-700 to-emerald-800",
+  cyan: "from-cyan-600 via-teal-700 to-emerald-800",
+  violet: "from-violet-700 via-teal-800 to-emerald-900",
+  rose: "from-rose-600 via-teal-700 to-emerald-800",
 };
 
 function HeroSkeleton() {
@@ -48,6 +55,12 @@ function HeroSlide({ slide }) {
   const navigate = useNavigate();
   const medicine = slide.medicine ?? {};
   const tone = TONES[slide.tone] ?? TONES["hero-teal"];
+  const title = slide.title ?? medicine.name ?? "Better health, delivered";
+  const highlight = slide.highlight ?? "from trusted vendors";
+  const description =
+    slide.description ?? medicine.description ?? "Verified medicines at fair prices, delivered to your door.";
+  const eyebrow = slide.eyebrow ?? "Featured medicine";
+  const ctaLabel = slide.ctaLabel ?? slide.ctaText ?? "Shop now";
 
   return (
     <div
@@ -66,16 +79,16 @@ function HeroSlide({ slide }) {
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-teal-50 uppercase backdrop-blur">
             <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
-            {slide.eyebrow}
+            {eyebrow}
           </span>
 
           <h1 className="mt-5 font-heading text-3xl leading-[1.15] font-bold text-white sm:text-4xl lg:text-5xl xl:text-[3.25rem]">
-            {slide.title}
-            <span className="mt-1 block text-teal-200">{slide.highlight}</span>
+            {title}
+            <span className="mt-1 block text-teal-200">{highlight}</span>
           </h1>
 
           <p className="mt-5 max-w-xl text-sm leading-relaxed text-white/80 sm:text-base">
-            {slide.description}
+            {description}
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -85,7 +98,7 @@ function HeroSlide({ slide }) {
               className="bg-white text-teal-800 hover:bg-teal-50"
               onClick={() => navigate(PATHS.SHOP)}
             >
-              {slide.ctaLabel}
+              {ctaLabel}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Button>
             <Button
@@ -112,7 +125,7 @@ function HeroSlide({ slide }) {
 
         <div className="relative mx-auto w-full max-w-sm pb-6 sm:max-w-md lg:pb-0">
           <Visual
-            name={slide.visual}
+            name={slide.visual ?? medicine.visual ?? "capsule"}
             tone="teal"
             className="aspect-square w-full border-white/30 shadow-2xl"
             iconClassName="h-44 w-44 sm:h-56 sm:w-56"

@@ -3,6 +3,7 @@ import { isProduction } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { ApiError } from '../utils/ApiError.js';
 import { sendError } from '../utils/apiResponse.js';
+import { ERROR_CODES } from '../constants/errorCodes.js';
 
 function normalizeError(error) {
   if (error instanceof ApiError) {
@@ -18,7 +19,7 @@ function normalizeError(error) {
     return {
       statusCode: 400,
       message: 'Validation failed',
-      code: 'VALIDATION_ERROR',
+      code: ERROR_CODES.VALIDATION_ERROR,
       errors: Object.fromEntries(Object.entries(error.errors).map(([field, detail]) => [field, detail.message])),
     };
   }
@@ -27,7 +28,7 @@ function normalizeError(error) {
     return {
       statusCode: 400,
       message: `Invalid value for field "${error.path}"`,
-      code: 'CAST_ERROR',
+      code: ERROR_CODES.CAST_ERROR,
     };
   }
 
@@ -35,7 +36,7 @@ function normalizeError(error) {
     return {
       statusCode: 409,
       message: 'Duplicate value for a unique field',
-      code: 'DUPLICATE_KEY',
+      code: ERROR_CODES.DUPLICATE_KEY,
       errors: error.keyValue,
     };
   }
@@ -44,7 +45,7 @@ function normalizeError(error) {
     return {
       statusCode: 400,
       message: 'Invalid JSON payload',
-      code: 'INVALID_JSON',
+      code: ERROR_CODES.INVALID_JSON,
     };
   }
 
@@ -54,7 +55,7 @@ function normalizeError(error) {
   return {
     statusCode,
     message: statusCode === 500 ? 'Internal Server Error' : error.message,
-    code: error?.code ? String(error.code) : undefined,
+    code: statusCode === 500 ? ERROR_CODES.INTERNAL_ERROR : error?.code ? String(error.code) : undefined,
   };
 }
 
