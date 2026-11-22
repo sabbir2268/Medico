@@ -25,6 +25,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.12.2",
     "morgan": "^1.12.1",
+    "multer": "^2.5.0",
     "pdfkit": "^0.21.0",
     "stripe": "^23.2.0",
     "zod": "^4.6.7"

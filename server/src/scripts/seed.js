@@ -151,6 +151,8 @@ async function seed() {
           visual: 'capsule',
           tone: 'teal',
           isActive: true,
+          status: 'approved',
+          seller: null,
           sortOrder: 0,
         },
       },

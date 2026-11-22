@@ -28,6 +28,12 @@ const orderSchema = new Schema(
         lineTotal: { type: Number, required: true, min: 0 },
         lineSavings: { type: Number, default: 0, min: 0 },
         prescriptionRequired: { type: Boolean, default: false },
+        // Per-vendor fulfilment: a single customer order may span sellers.
+        fulfillmentStatus: {
+          type: String,
+          enum: ['processing', 'shipped', 'delivered'],
+          default: 'processing',
+        },
         _id: false,
       },
     ],

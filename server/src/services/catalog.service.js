@@ -252,6 +252,7 @@ export async function listAdvertisements(limit = 8) {
   const now = new Date();
   const docs = await Advertisement.find({
     isActive: true,
+    status: 'approved',
     $and: [
       { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
       { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
