@@ -1,5 +1,14 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, Pill, Store, UserRound } from "lucide-react";
+import {
+  CreditCard,
+  LayoutDashboard,
+  LockKeyhole,
+  LogOut,
+  Package,
+  Pill,
+  Store,
+  UserRound,
+} from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { ROLES } from "@/constants/roles";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -17,6 +26,21 @@ const dashboardNav = [
     label: "My profile",
     to: PATHS.PROFILE,
     icon: UserRound,
+  },
+  {
+    label: "Orders",
+    to: PATHS.ORDERS,
+    icon: Package,
+  },
+  {
+    label: "Payments",
+    to: PATHS.PAYMENTS,
+    icon: CreditCard,
+  },
+  {
+    label: "Security",
+    to: PATHS.SECURITY,
+    icon: LockKeyhole,
   },
 ];
 

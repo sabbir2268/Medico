@@ -17,13 +17,13 @@ import {
 
 const router = Router();
 
-router.use(authenticate);
-
-router.get('/cart', getCartController);
-router.post('/cart/items', validate(addCartItemSchema), addItem);
-router.patch('/cart/items/:medicineId', validate(updateCartItemSchema), updateItem);
-router.delete('/cart/items/:medicineId', removeItem);
-router.delete('/cart', clearCartController);
-router.post('/cart/merge', validate(mergeCartSchema), mergeCart);
+// Apply authentication per route: router.use() would leak into sibling routers
+// mounted later on the parent /api router (orders, payments, dashboard).
+router.get('/cart', authenticate, getCartController);
+router.post('/cart/items', authenticate, validate(addCartItemSchema), addItem);
+router.patch('/cart/items/:medicineId', authenticate, validate(updateCartItemSchema), updateItem);
+router.delete('/cart/items/:medicineId', authenticate, removeItem);
+router.delete('/cart', authenticate, clearCartController);
+router.post('/cart/merge', authenticate, validate(mergeCartSchema), mergeCart);
 
 export default router;

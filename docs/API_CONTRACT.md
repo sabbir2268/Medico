@@ -219,6 +219,105 @@ Cart response:
 No price, discount or total is accepted from the client. Lines whose medicine became
 unavailable are dropped from the response rather than charged.
 
+## Checkout, payments and dashboard endpoints
+
+All of these require `Authorization: Bearer <accessToken>` except the Stripe
+webhook.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| POST | `/api/orders` | Creates an order from the server-side cart; snapshots items, decrements stock, clears cart |
+| GET | `/api/orders/:id` | Order owned by the authenticated user |
+| GET | `/api/orders/:id/invoice` | PDF invoice built from immutable order snapshots |
+| POST | `/api/payments/create-checkout-session` | Creates a real Stripe Checkout session; returns `checkoutUrl` |
+| POST | `/api/payments/webhook` | Public, Stripe-signature-verified; the only source of payment truth |
+| GET | `/api/payments/:id` | By payment id, Stripe session id, or order id; owned by the user |
+| GET | `/api/users/me` | Account summary |
+| PATCH | `/api/users/profile` | `username`, `email`, `phone`, `photoURL`, `address`, `addressLine1`… |
+| GET | `/api/users/orders` | Paginated: `page`, `limit`, optional `status` |
+| GET | `/api/users/orders/:id` | Owned order detail |
+| POST | `/api/users/orders/:id/cancel` | Unpaid orders only; restores stock once |
+| GET | `/api/users/payments` | Paginated payment history |
+
+### Order creation
+
+```http
+POST /api/orders
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "idempotencyKey": "a-uuid-stable-across-retries",
+  "delivery": {
+    "fullName": "Asha Rahman",
+    "phone": "+8801712345678",
+    "addressLine1": "12 Green Road",
+    "addressLine2": "Flat 3B",
+    "city": "Dhaka",
+    "postalCode": "1205",
+    "country": "Bangladesh",
+    "instructions": "Leave at the door"
+  },
+  "prescription": {
+    "prescriberName": "Dr. Smith",
+    "prescriptionNumber": "RX-12345"
+  }
+}
+```
+
+`prescription` is mandatory when any cart item has `prescriptionRequired: true`.
+Missing it returns `400 PRESCRIPTION_REQUIRED`. No price, discount, seller,
+total or user id is accepted from the client.
+
+```json
+{
+  "success": true,
+  "message": "Order created successfully.",
+  "data": {
+    "order": {
+      "id": "…",
+      "orderNumber": "MD-ABC12345",
+      "items": [{ "name": "Paracetamol 500mg", "unitPrice": 15.3, "quantity": 2, "lineTotal": 30.6 }],
+      "pricing": { "subtotal": 36, "discount": 5.4, "deliveryCharge": 60, "total": 90.6 },
+      "status": "pending",
+      "paymentStatus": "pending",
+      "prescription": { "required": false, "status": "not_required" }
+    }
+  }
+}
+```
+
+Repeating the same `idempotencyKey` returns the same order instead of creating a
+duplicate. Stock is decremented atomically and rolled back if the order cannot
+be written. Cancelling an unpaid order restores stock exactly once.
+
+### Stripe Checkout and webhook
+
+`POST /api/payments/create-checkout-session` with `{ "orderId": "…" }` returns
+`data.payment.checkoutUrl`. Redirect the browser there. Stripe redirects back to
+`STRIPE_SUCCESS_URL` or `STRIPE_CANCEL_URL`; the client must call
+`GET /api/payments/:id` with the `session_id` rather than trusting the redirect.
+
+Configure a webhook endpoint pointing at `https://your-api/api/payments/webhook`
+with events:
+
+- `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
+- `checkout.session.async_payment_failed`
+- `checkout.session.expired`
+
+Set `STRIPE_WEBHOOK_SECRET` to the endpoint's signing secret. Use
+`stripe listen --forward-to localhost:5000/api/payments/webhook` locally. Invalid
+signatures return `400 WEBHOOK_INVALID_SIGNATURE`. Only verified events update
+`Payment.status`, `Order.paymentStatus` and `Order.status`. Duplicate event ids
+are ignored.
+
+### Cancellation rules
+
+Only orders with status `pending` or `processing` **and** `paymentStatus !== paid`
+may be cancelled. Paid orders require a refund flow (not yet implemented) and
+return `409 ORDER_NOT_CANCELLABLE`.
+
 ## Security rules
 
 - Never trust `role`, `price`, `discount`, `seller` or totals from a request body.

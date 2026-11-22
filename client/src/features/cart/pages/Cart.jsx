@@ -209,7 +209,12 @@ export default function Cart() {
             </p>
           )}
 
-          <Button className="mt-6 w-full" size="lg" disabled={isMutating}>
+          <Button
+            className="mt-6 w-full"
+            size="lg"
+            disabled={isMutating}
+            onClick={() => navigate(PATHS.CHECKOUT)}
+          >
             Proceed to checkout
           </Button>
           <Link

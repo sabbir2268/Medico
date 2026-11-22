@@ -8,6 +8,8 @@ import categoryRoutes from './categories.routes.js';
 import medicineRoutes from './medicines.routes.js';
 import healthTipRoutes from './healthTips.routes.js';
 import cartRoutes from './cart.routes.js';
+import orderRoutes from './orders.routes.js';
+import paymentRoutes from './payments.routes.js';
 
 const router = Router();
 
@@ -20,5 +22,7 @@ router.use(categoryRoutes);
 router.use(medicineRoutes);
 router.use(healthTipRoutes);
 router.use(cartRoutes);
+router.use(orderRoutes);
+router.use(paymentRoutes);
 
 export default router;

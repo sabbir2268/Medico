@@ -43,6 +43,17 @@ export const profileSchema = z.object({
     .max(30, "Keep this under 30 characters"),
   email,
   photoURL,
+  phone: z
+    .string()
+    .trim()
+    .regex(/^[0-9+\s()-]*$/, "Use digits, spaces, +, - or parentheses only")
+    .optional()
+    .or(z.literal("")),
+  addressLine1: z.string().trim().max(200).optional().or(z.literal("")),
+  addressLine2: z.string().trim().max(200).optional().or(z.literal("")),
+  city: z.string().trim().max(80).optional().or(z.literal("")),
+  postalCode: z.string().trim().max(20).optional().or(z.literal("")),
+  country: z.string().trim().max(80).optional().or(z.literal("")),
 });
 
 export const passwordSchema = z

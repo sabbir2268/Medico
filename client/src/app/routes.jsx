@@ -6,6 +6,10 @@ import About from "@/features/about/pages/About";
 import Shop from "@/features/shop/pages/Shop";
 import Deals from "@/features/shop/pages/Deals";
 import Cart from "@/features/cart/pages/Cart";
+import Checkout from "@/features/checkout/pages/Checkout";
+import PaymentSuccess from "@/features/checkout/pages/PaymentSuccess";
+import PaymentFailure from "@/features/checkout/pages/PaymentFailure";
+import PaymentCancel from "@/features/checkout/pages/PaymentCancel";
 import Categories from "@/features/shop/pages/Categories";
 import CategoryMedicines from "@/features/shop/pages/CategoryMedicines";
 import Login from "@/features/auth/pages/Login";
@@ -14,6 +18,10 @@ import ForgotPassword from "@/features/auth/pages/ForgotPassword";
 import DashboardHome from "@/features/dashboard/pages/DashboardHome";
 import SellerHome from "@/features/dashboard/pages/SellerHome";
 import AdminOverview from "@/features/dashboard/pages/AdminOverview";
+import Orders from "@/features/dashboard/pages/Orders";
+import OrderDetails from "@/features/dashboard/pages/OrderDetails";
+import Payments from "@/features/dashboard/pages/Payments";
+import Security from "@/features/dashboard/pages/Security";
 import Profile from "@/features/auth/pages/Profile";
 import NotFound from "@/pages/NotFound";
 import ErrorPage from "@/pages/ErrorPage";
@@ -62,6 +70,22 @@ export const routes = [
         ],
       },
 
+      // Checkout and Stripe return pages (storefront shell, sign-in required).
+      {
+        element: <PrivateRoute />,
+        children: [
+          {
+            element: <PublicLayout />,
+            children: [
+              { path: PATHS.CHECKOUT, element: <Checkout /> },
+              { path: PATHS.PAYMENT_SUCCESS, element: <PaymentSuccess /> },
+              { path: PATHS.PAYMENT_FAILURE, element: <PaymentFailure /> },
+              { path: PATHS.PAYMENT_CANCEL, element: <PaymentCancel /> },
+            ],
+          },
+        ],
+      },
+
       // Authenticated pages.
       {
         element: <PrivateRoute />,
@@ -71,6 +95,10 @@ export const routes = [
             children: [
               { path: PATHS.DASHBOARD, element: <DashboardHome /> },
               { path: PATHS.PROFILE, element: <Profile /> },
+              { path: PATHS.SECURITY, element: <Security /> },
+              { path: PATHS.ORDERS, element: <Orders /> },
+              { path: PATHS.ORDER_DETAILS(":id"), element: <OrderDetails /> },
+              { path: PATHS.PAYMENTS, element: <Payments /> },
               {
                 element: <RoleRoute allowedRoles={[ROLES.SELLER]} />,
                 children: [{ path: PATHS.SELLER, element: <SellerHome /> }],

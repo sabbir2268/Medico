@@ -201,8 +201,9 @@ export async function handleWebhookEvent(event) {
 }
 
 export async function getPaymentForUser(userId, id) {
-  const conditions = [{ _id: id }, { stripeSessionId: id }];
-  if (/^[a-fA-F0-9]{24}$/.test(id)) conditions.push({ order: id });
+  const isObjectId = /^[a-fA-F0-9]{24}$/.test(id);
+  const conditions = isObjectId ? [{ _id: id }, { order: id }] : [];
+  conditions.push({ stripeSessionId: id });
 
   const payment = await Payment.findOne({ user: userId, $or: conditions });
   if (!payment) {

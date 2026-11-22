@@ -297,7 +297,7 @@ function Navbar() {
                       </MenuItem>
                       <MenuItem
                         icon={ClipboardList}
-                        onClick={() => navigate(PATHS.DASHBOARD)}
+                        onClick={() => navigate(PATHS.ORDERS)}
                       >
                         My orders
                       </MenuItem>

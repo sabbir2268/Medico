@@ -23,7 +23,17 @@ function Profile() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(profileSchema),
-    defaultValues: { username: "", email: "", photoURL: "" },
+    defaultValues: {
+      username: "",
+      email: "",
+      photoURL: "",
+      phone: "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      postalCode: "",
+      country: "Bangladesh",
+    },
   });
   const {
     register: registerPassword,
@@ -43,6 +53,12 @@ function Profile() {
         username: user.username ?? user.name ?? "",
         email: user.email ?? "",
         photoURL: user.photoURL ?? "",
+        phone: user.phone ?? "",
+        addressLine1: user.address?.addressLine1 ?? "",
+        addressLine2: user.address?.addressLine2 ?? "",
+        city: user.address?.city ?? "",
+        postalCode: user.address?.postalCode ?? "",
+        country: user.address?.country ?? "Bangladesh",
       });
     }
   }, [user, reset]);
@@ -121,6 +137,57 @@ function Profile() {
                 error={errors.photoURL}
                 {...register("photoURL")}
               />
+
+              <FormField
+                label="Phone number"
+                name="phone"
+                type="tel"
+                autoComplete="tel"
+                error={errors.phone}
+                {...register("phone")}
+              />
+
+              <div className="grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <FormField
+                    label="Address line 1"
+                    name="addressLine1"
+                    autoComplete="address-line1"
+                    error={errors.addressLine1}
+                    {...register("addressLine1")}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <FormField
+                    label="Address line 2"
+                    name="addressLine2"
+                    autoComplete="address-line2"
+                    error={errors.addressLine2}
+                    {...register("addressLine2")}
+                  />
+                </div>
+                <FormField
+                  label="City"
+                  name="city"
+                  autoComplete="address-level2"
+                  error={errors.city}
+                  {...register("city")}
+                />
+                <FormField
+                  label="Postal code"
+                  name="postalCode"
+                  autoComplete="postal-code"
+                  error={errors.postalCode}
+                  {...register("postalCode")}
+                />
+                <FormField
+                  label="Country"
+                  name="country"
+                  autoComplete="country-name"
+                  error={errors.country}
+                  {...register("country")}
+                />
+              </div>
 
               <div className="flex flex-wrap items-center gap-4">
                 {photoURL && (

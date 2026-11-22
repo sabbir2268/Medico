@@ -124,6 +124,8 @@ export function toBackendAppUser(serverUser, tokens = null) {
     username: serverUser.username || serverUser.displayName || "Member",
     email: serverUser.email ?? "",
     photoURL: serverUser.photoURL ?? "",
+    phone: serverUser.phone ?? "",
+    address: serverUser.address ?? {},
     emailVerified: true,
     provider: serverUser.provider ?? "password",
     role: normalizeServerRole(serverUser.role),
@@ -437,7 +439,19 @@ export async function logoutBackend() {
 }
 
 export async function patchBackendProfile(values) {
-  const { data } = await apiClient.patch(API_ROUTES.users.profile, values);
+  const {
+    addressLine1 = "",
+    addressLine2 = "",
+    city = "",
+    postalCode = "",
+    country = "Bangladesh",
+    ...rest
+  } = values;
+
+  const { data } = await apiClient.patch(API_ROUTES.users.profile, {
+    ...rest,
+    address: { addressLine1, addressLine2, city, postalCode, country },
+  });
   const body = unwrapSession(data);
 
   return { user: toBackendAppUser(body.user) };
