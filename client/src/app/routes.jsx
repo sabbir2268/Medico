@@ -33,6 +33,7 @@ import AdminAdvertisements from "@/features/admin/pages/AdminAdvertisements";
 import AdminHealthTips from "@/features/admin/pages/AdminHealthTips";
 import AdminAuditLogs from "@/features/admin/pages/AdminAuditLogs";
 import Profile from "@/features/auth/pages/Profile";
+import { ScrollToTop } from "./components/ScrollToTop";
 import NotFound from "@/pages/NotFound";
 import ErrorPage from "@/pages/ErrorPage";
 import { ROLES } from "@/constants/roles";
@@ -47,7 +48,8 @@ import { PATHS } from "@/utils/paths";
  */
 export const routes = [
   {
-    // Pathless root: catches errors from every route below.
+    // Pathless root: resets scroll position and catches errors from every route below.
+    element: <ScrollToTop />,
     errorElement: <ErrorPage />,
     children: [
       {

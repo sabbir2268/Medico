@@ -21,10 +21,7 @@ import { PATHS } from "@/utils/paths";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
-  { code: "es", label: "Español" },
-  { code: "fr", label: "Français" },
-  { code: "ar", label: "العربية" },
-  { code: "hi", label: "हिन्दी" },
+  { code: "bn", label: "বাংলা" },
 ];
 
 function navLinkClass({ isActive }) {

@@ -49,6 +49,15 @@ function normalizeError(error) {
     };
   }
 
+  if (error?.name === 'MulterError') {
+    return {
+      statusCode: 400,
+      message: error.code === 'LIMIT_FILE_SIZE' ? 'Images must be smaller than 5 MB.' : error.message,
+      code: ERROR_CODES.VALIDATION_ERROR,
+      errors: { image: error.message },
+    };
+  }
+
   const hasValidStatus = Number.isInteger(error?.statusCode) && error.statusCode >= 400 && error.statusCode < 600;
   const statusCode = hasValidStatus ? error.statusCode : 500;
 

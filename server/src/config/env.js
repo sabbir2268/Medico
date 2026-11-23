@@ -95,6 +95,9 @@ export const env = Object.freeze({
     successUrl: readString('STRIPE_SUCCESS_URL', 'http://localhost:5173/payments/success'),
     cancelUrl: readString('STRIPE_CANCEL_URL', 'http://localhost:5173/payments/cancel'),
   }),
+  imgbb: Object.freeze({
+    apiKey: readString('IMGBB_API_KEY'),
+  }),
   cloudinary: Object.freeze({
     cloudName: readString('CLOUDINARY_CLOUD_NAME'),
     apiKey: readString('CLOUDINARY_API_KEY'),

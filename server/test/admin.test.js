@@ -5,8 +5,9 @@ import mongoose from 'mongoose';
 
 process.env.NODE_ENV = 'test';
 process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/medico-test-admin';
-delete process.env.STRIPE_SECRET_KEY;
-delete process.env.STRIPE_WEBHOOK_SECRET;
+// Set empty (not delete): dotenv would otherwise reload them from .env.
+process.env.STRIPE_SECRET_KEY = '';
+process.env.STRIPE_WEBHOOK_SECRET = '';
 
 let app;
 let User;

@@ -28,11 +28,15 @@ function writeCart(items) {
   return count;
 }
 
+function matches(item, id) {
+  return (item.id ?? item._id) === id;
+}
+
 export function getCartCount() {
   return readCart().reduce((total, item) => total + (Number(item.quantity) || 0), 0);
 }
 
-export function addToCart(medicine) {
+export function addToCart(medicine, quantity = 1) {
   if (!medicine) return getCartCount();
 
   const id = medicine.id ?? medicine._id;
@@ -40,7 +44,8 @@ export function addToCart(medicine) {
   if (!id) return getCartCount();
 
   const items = readCart();
-  const index = items.findIndex((item) => (item.id ?? item._id) === id);
+  const index = items.findIndex((item) => matches(item, id));
+  const amount = Math.max(1, Number(quantity) || 1);
 
   if (index === -1) {
     items.push({
@@ -48,10 +53,16 @@ export function addToCart(medicine) {
       name: medicine.name ?? "Medicine",
       price: Number(medicine.price) || 0,
       image: medicine.image ?? medicine.photoURL ?? null,
-      quantity: 1,
+      visual: medicine.visual ?? "capsule",
+      tone: medicine.tone ?? "teal",
+      manufacturer: medicine.manufacturer ?? medicine.vendor ?? "",
+      quantity: amount,
     });
   } else {
-    items[index] = { ...items[index], quantity: Number(items[index].quantity) + 1 };
+    items[index] = {
+      ...items[index],
+      quantity: Number(items[index].quantity) + amount,
+    };
   }
 
   return writeCart(items);
@@ -59,6 +70,20 @@ export function addToCart(medicine) {
 
 export function getCartItems() {
   return readCart();
+}
+
+/** Update the quantity of a medicine kept in the local (guest / demo) cart. */
+export function updateLocalCartItem(id, quantity) {
+  const amount = Math.max(1, Number(quantity) || 1);
+
+  return writeCart(
+    readCart().map((item) => (matches(item, id) ? { ...item, quantity: amount } : item)),
+  );
+}
+
+/** Remove one medicine from the local (guest / demo) cart. */
+export function removeLocalCartItem(id) {
+  return writeCart(readCart().filter((item) => !matches(item, id)));
 }
 
 /** Clears the local guest cart after it has been merged into the user's cart. */

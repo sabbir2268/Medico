@@ -2,10 +2,10 @@ import { useCallback, useMemo, useState } from "react";
 import { AsyncContent } from "@/components/shared/AsyncContent";
 import { StatePanel } from "@/components/shared/StatePanel";
 import { notify } from "@/lib/notify";
+import { useCart } from "@/features/cart/hooks/useCart";
 import { useCategories } from "@/features/home/hooks/useHomeData";
 import { useCatalogParams } from "../hooks/useCatalogParams";
 import { useMedicines } from "../hooks/useMedicines";
-import { addToCart } from "../utils/cart";
 import { MedicineDetailsModal } from "./MedicineDetailsModal";
 import { MedicineFilters } from "./MedicineFilters";
 import { MedicineTable } from "./MedicineTable";
@@ -18,6 +18,7 @@ export function CatalogPanel({
   emptyDescription = "Try a different search term or clear your filters to see more medicines.",
 }) {
   const params = useCatalogParams({ lockedCategoryId });
+  const { add } = useCart();
   const categoriesQuery = useCategories();
   const medicinesQuery = useMedicines(params);
   const [selected, setSelected] = useState(null);
@@ -28,13 +29,16 @@ export function CatalogPanel({
     [categories],
   );
 
-  const handleAddToCart = useCallback((medicine) => {
-    const count = addToCart(medicine);
+  const handleAddToCart = useCallback(
+    async (medicine) => {
+      const count = await add(medicine);
 
-    notify.success(
-      `${medicine.name} added to your cart. ${count} item${count === 1 ? "" : "s"} total.`,
-    );
-  }, []);
+      notify.success(
+        `${medicine.name} added to your cart. ${count} item${count === 1 ? "" : "s"} total.`,
+      );
+    },
+    [add],
+  );
 
   const handleDetails = useCallback((medicine) => setSelected(medicine), []);
   const handlePageChange = useCallback(

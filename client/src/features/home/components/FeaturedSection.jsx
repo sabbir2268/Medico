@@ -4,10 +4,18 @@ import { AsyncContent, SkeletonGrid } from "@/components/shared/AsyncContent";
 import { MedicineCard } from "@/components/shared/MedicineCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { PATHS } from "@/utils/paths";
-import { useFeaturedMedicines } from "../hooks/useHomeData";
+import { useDiscountedMedicines, useFeaturedMedicines } from "../hooks/useHomeData";
 
 export function FeaturedSection() {
   const query = useFeaturedMedicines();
+  const dealsQuery = useDiscountedMedicines();
+  const dealIds = new Set(dealsQuery.items.map((medicine) => medicine.id ?? medicine._id));
+  const items = query.items.filter((medicine) => !dealIds.has(medicine.id ?? medicine._id));
+  const visibleQuery = {
+    ...query,
+    items,
+    isEmpty: query.isEmpty || (!query.isPending && !query.isError && items.length === 0),
+  };
 
   return (
     <section id="featured-medicines" className="scroll-mt-24">
@@ -16,7 +24,7 @@ export function FeaturedSection() {
         eyebrow="Featured medicines"
         title="Trusted picks from our pharmacy partners"
         description="Hand-selected essentials with strong ratings, clear pricing, and full manufacturer details — so you can order with confidence."
-        isFallback={query.isFallback}
+        isFallback={visibleQuery.isFallback}
         action={
           <Link
             to={PATHS.SHOP}
@@ -28,11 +36,11 @@ export function FeaturedSection() {
         }
       />
       <AsyncContent
-        query={query}
+        query={visibleQuery}
         skeleton={<SkeletonGrid count={8} />}
         className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4"
       >
-        {query.items.map((medicine) => (
+        {visibleQuery.items.map((medicine) => (
           <MedicineCard key={medicine.id} medicine={medicine} />
         ))}
       </AsyncContent>
