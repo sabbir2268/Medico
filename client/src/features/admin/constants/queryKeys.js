@@ -9,7 +9,7 @@ export const adminKeys = {
   orders: (params) => [...adminKeys.all, "orders", params ?? {}],
   payments: (params) => [...adminKeys.all, "payments", params ?? {}],
   report: (params) => [...adminKeys.all, "report", params ?? {}],
-  advertisements: () => [...adminKeys.all, "advertisements"],
-  healthTips: () => [...adminKeys.all, "health-tips"],
+  advertisements: (params) => [...adminKeys.all, "advertisements", params ?? {}],
+  healthTips: (params) => [...adminKeys.all, "health-tips", params ?? {}],
   auditLogs: (params) => [...adminKeys.all, "audit-logs", params ?? {}],
 };

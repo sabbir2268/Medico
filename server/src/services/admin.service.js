@@ -390,6 +390,7 @@ function serializeAdminOrder(order) {
     items: order.items.map((item) => ({
       name: item.name,
       quantity: item.quantity,
+      unitPrice: item.unitPrice ?? (item.quantity ? Number(item.lineTotal) / item.quantity : 0),
       lineTotal: item.lineTotal,
       fulfillmentStatus: item.fulfillmentStatus ?? 'processing',
       sellerName: item.sellerName,

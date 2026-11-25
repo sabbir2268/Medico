@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { USER_ROLES } from '../constants/roles.js';
+import { USER_ROLES, ASSIGNABLE_ROLES } from '../constants/roles.js';
 
 const optionalDate = z
   .string()
@@ -20,7 +20,9 @@ export const adminQuerySchema = z.object({
 export const analyticsQuerySchema = z.object({ from: optionalDate, to: optionalDate });
 
 export const roleUpdateSchema = z.object({
-  role: z.enum(USER_ROLES),
+  // Admin is deliberately excluded: the configured ADMIN_EMAIL is the only
+  // account allowed to hold that role, and it is never assigned via the API.
+  role: z.enum(ASSIGNABLE_ROLES),
 });
 
 export const userStatusSchema = z.object({

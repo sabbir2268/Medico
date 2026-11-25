@@ -103,7 +103,7 @@ export default function AdminCategories() {
 
       <AdminContent query={query} emptyTitle="No categories" emptyDescription="Create the first category.">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {query.data.items.map((category) => (
+          {(query.data?.items ?? []).map((category) => (
             <div key={category.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
               <div className="flex items-start justify-between gap-2">
                 <div>

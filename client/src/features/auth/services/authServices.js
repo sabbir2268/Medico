@@ -18,7 +18,9 @@ import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { app, auth } from "@/config/firebase";
 import { apiClient } from "@/lib/api";
 import { API_ROUTES } from "@/constants/api";
+import { env } from "@/config/env";
 import { normalizeAssignableRole, normalizeServerRole } from "@/constants/roles";
+import { applyAdminEmail } from "../utils/adminEmail";
 import { PATHS } from "@/utils/paths";
 import { readLocalProfile, writeLocalProfile } from "../utils/localProfile";
 import {
@@ -83,6 +85,11 @@ function requireCurrentUser() {
   return current;
 }
 
+/** Emails are stored lowercased on the server, so normalize them everywhere. */
+function normalizeEmail(email) {
+  return String(email ?? "").trim().toLowerCase();
+}
+
 function saveProfile(uid, updates) {
   const current = readLocalProfile(uid) ?? {};
 
@@ -100,7 +107,7 @@ export function toAppUser(firebaseUser, localProfile = null, serverUser = null) 
   const name = profile.name ?? profile.username ?? firebaseUser.displayName ?? "Member";
   const email = firebaseUser.email ?? profile.email ?? "";
 
-  return {
+  return applyAdminEmail({
     uid: firebaseUser.uid,
     id: firebaseUser.id,
     name,
@@ -110,14 +117,14 @@ export function toAppUser(firebaseUser, localProfile = null, serverUser = null) 
     emailVerified: Boolean(firebaseUser.emailVerified),
     provider: firebaseUser.providerData?.[0]?.providerId ?? "password",
     role: serverUser ? normalizeServerRole(serverUser.role) : normalizeAssignableRole(profile.role),
-  };
+  });
 }
 
 /** Maps a backend user record into the shape consumed by the UI. */
 export function toBackendAppUser(serverUser, tokens = null) {
   if (!serverUser) return null;
 
-  return {
+  return applyAdminEmail({
     uid: serverUser.firebaseUid ?? serverUser.id,
     id: serverUser.id,
     name: serverUser.username || serverUser.displayName || "Member",
@@ -130,7 +137,7 @@ export function toBackendAppUser(serverUser, tokens = null) {
     provider: serverUser.provider ?? "password",
     role: normalizeServerRole(serverUser.role),
     tokens,
-  };
+  });
 }
 
 /**
@@ -164,6 +171,53 @@ export function toAuthError(error) {
 }
 
 export function observeAuth(callback) {
+  // Backend mode owns the session via JWTs. Firebase's onAuthStateChanged must
+  // not clear those tokens on reload (it fires with `null` before anything
+  // else), otherwise every protected admin page redirects back to /login.
+  if (env.VITE_AUTH_MODE === "backend") {
+    let active = true;
+
+    if (hasBackendSession()) {
+      fetchCurrentUser()
+        .then((user) => {
+          if (active) callback(user);
+        })
+        .catch(() => {
+          clearTokens();
+          if (active) callback(null);
+        });
+    } else {
+      callback(null);
+    }
+
+    // Social sign-in still happens through Firebase. Listen for it so the
+    // session is not lost on reload and exchange it for our own JWT when the
+    // API is available. Never let a null Firebase state clear backend tokens.
+    let unsubscribe = () => {};
+    if (auth) {
+      unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        if (!active || !firebaseUser) return;
+
+        exchangeFirebaseSession()
+          .then((serverUser) => {
+            if (active) {
+              callback(
+                serverUser ?? toAppUser(firebaseUser, readLocalProfile(firebaseUser.uid)),
+              );
+            }
+          })
+          .catch(() => {
+            if (active) callback(toAppUser(firebaseUser, readLocalProfile(firebaseUser.uid)));
+          });
+      });
+    }
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }
+
   if (!auth) {
     callback(null);
     return () => {};
@@ -201,11 +255,8 @@ export async function registerWithEmail({
   role,
 }) {
   const safeRole = normalizeAssignableRole(role);
-  const credential = await createUserWithEmailAndPassword(
-    requireAuth(),
-    email.trim(),
-    password,
-  );
+  const safeEmail = normalizeEmail(email);
+  const credential = await createUserWithEmailAndPassword(requireAuth(), safeEmail, password);
 
   try {
     await updateProfile(credential.user, {
@@ -219,7 +270,7 @@ export async function registerWithEmail({
   const profile = saveProfile(credential.user.uid, {
     name: username,
     username,
-    email: credential.user.email ?? email.trim(),
+    email: normalizeEmail(credential.user.email ?? safeEmail),
     photoURL,
     role: safeRole,
   });
@@ -230,7 +281,7 @@ export async function registerWithEmail({
 export async function signInWithEmail({ email, password }) {
   const credential = await signInWithEmailAndPassword(
     requireAuth(),
-    email.trim(),
+    normalizeEmail(email),
     password,
   );
 
@@ -248,10 +299,18 @@ export async function signInWithSocial(providerName) {
   }
 
   const credential = await signInWithPopup(requireAuth(), provider);
+  const firebaseUser = toAppUser(credential.user, readLocalProfile(credential.user.uid));
 
-  return {
-    user: toAppUser(credential.user, readLocalProfile(credential.user.uid)),
-  };
+  if (env.VITE_AUTH_MODE === "backend") {
+    try {
+      const serverUser = await exchangeFirebaseSession();
+      if (serverUser) return { user: serverUser };
+    } catch {
+      /* Fall back to the Firebase-only session when the API cannot exchange. */
+    }
+  }
+
+  return { user: firebaseUser };
 }
 
 export async function signOutUser() {
@@ -313,10 +372,20 @@ export async function resetUserPassword(email) {
       : undefined;
 
   try {
-    await sendPasswordResetEmail(requireAuth(), email.trim(), actionCodeSettings);
+    await sendPasswordResetEmail(requireAuth(), normalizeEmail(email), actionCodeSettings);
   } catch (error) {
     // Do not reveal whether an account exists for the address.
-    if (error?.code === "auth/user-not-found") return;
+    if (error?.code === "auth/user-not-found") {
+      // Backend accounts have no Firebase identity, so a silent success would
+      // be misleading. Surface a clear message instead.
+      if (env.VITE_AUTH_MODE === "backend") {
+        throw new Error(
+          "Password reset is not available for this account yet. Please contact Medico support.",
+          { cause: error },
+        );
+      }
+      return;
+    }
 
     throw error;
   }
@@ -366,7 +435,7 @@ function unwrapSession(data) {
 export async function registerWithBackend(values) {
   const { data } = await apiClient.post(API_ROUTES.auth.register, {
     username: values.username,
-    email: values.email,
+    email: normalizeEmail(values.email),
     password: values.password,
     photoURL: values.photoURL || "",
     role: values.role,
@@ -379,7 +448,7 @@ export async function registerWithBackend(values) {
 
 export async function loginWithBackend(values) {
   const { data } = await apiClient.post(API_ROUTES.auth.login, {
-    email: values.email,
+    email: normalizeEmail(values.email),
     password: values.password,
   });
   const session = unwrapSession(data);

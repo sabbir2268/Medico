@@ -53,7 +53,7 @@ export default function AdminMedicines() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {query.data.items.map((medicine) => (
+              {(query.data?.items ?? []).map((medicine) => (
                 <tr key={medicine.id}>
                   <td className="px-4 py-3">
                     <p className="font-medium">{medicine.name}</p>
@@ -64,7 +64,17 @@ export default function AdminMedicines() {
                   <td className="px-4 py-3 font-semibold">{formatPrice(medicine.price)}</td>
                   <td className="px-4 py-3">{medicine.stock}</td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={medicine.isApproved ? (medicine.status === "active" ? "delivered" : "cancelled") : "pending"} />
+                    <StatusBadge
+                      status={
+                        medicine.isApproved === false
+                          ? "pending"
+                          : medicine.isHidden
+                            ? "hidden"
+                            : medicine.status === "inactive"
+                              ? "inactive"
+                              : "active"
+                      }
+                    />
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">

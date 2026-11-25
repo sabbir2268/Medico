@@ -10,6 +10,8 @@ const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
 const orderSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    // Immutable, human-readable id generated once per order on the server.
+    orderNumber: { type: String, default: null },
     items: [
       {
         medicine: { type: Schema.Types.ObjectId, ref: 'Medicine', required: true },
@@ -78,5 +80,6 @@ const orderSchema = new Schema(
 
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ user: 1, idempotencyKey: 1 }, { unique: true, sparse: true });
+orderSchema.index({ orderNumber: 1 }, { unique: true, sparse: true });
 
 export const Order = model('Order', orderSchema);

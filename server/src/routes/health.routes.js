@@ -35,7 +35,11 @@ router.get(
         uptimeSeconds: Math.floor(process.uptime()),
         nodeVersion: process.version,
       },
-      database,
+      // Keep infrastructure details (Atlas host / database name) private.
+      database: {
+        status: database.status,
+        readyState: database.readyState,
+      },
       features: {
         auth: { firebaseAdmin: isFirebaseAdminConfigured },
         payments: { stripe: isStripeConfigured },

@@ -13,6 +13,8 @@ let User;
 let Category;
 let Medicine;
 let Cart;
+let Order;
+let Payment;
 
 before(async () => {
   ({ default: app } = await import('../src/app.js'));
@@ -20,6 +22,8 @@ before(async () => {
   ({ Category } = await import('../src/models/Category.js'));
   ({ Medicine } = await import('../src/models/Medicine.js'));
   ({ Cart } = await import('../src/models/Cart.js'));
+  ({ Order } = await import('../src/models/Order.js'));
+  ({ Payment } = await import('../src/models/Payment.js'));
   const { connectDatabase } = await import('../src/config/database.js');
   await connectDatabase();
   await Promise.all([
@@ -27,6 +31,8 @@ before(async () => {
     Category.deleteMany({}),
     Medicine.deleteMany({}),
     Cart.deleteMany({}),
+    Order.deleteMany({}),
+    Payment.deleteMany({}),
   ]);
 });
 
@@ -227,5 +233,112 @@ describe('cart endpoints', () => {
       .set('Authorization', `Bearer ${buyer.accessToken}`)
       .expect(200);
     assert.equal(empty.body.data.cart.itemCount, 0);
+  });
+});
+
+describe('order ownership and per-order identity', () => {
+  const delivery = {
+    fullName: 'Test Buyer',
+    phone: '+880 1700 000000',
+    addressLine1: '12 Test Street',
+    city: 'Dhaka',
+    postalCode: '1000',
+    country: 'Bangladesh',
+  };
+
+  test('a new purchase after cancellation gets a new order id, and orders/payments stay owner-scoped', async () => {
+    const buyer = await register('user');
+    const other = await register('user');
+    const buyerId = String((await User.findOne({ email: buyer.email }))._id);
+
+    const category = await Category.create({
+      name: `Order Category ${Date.now()}`,
+      slug: `order-cat-${Date.now()}`,
+      isActive: true,
+    });
+    const medicine = await Medicine.create({
+      name: 'Order Medicine',
+      category: category._id,
+      seller: buyerId,
+      price: 100,
+      discountPercent: 0,
+      stock: 10,
+      status: 'active',
+    });
+    const medicineId = String(medicine._id);
+    const auth = (session) => ({ Authorization: `Bearer ${session.accessToken}` });
+    const reuseKey = `checkout-key-${Date.now()}`;
+
+    // First order.
+    await request(app)
+      .post('/api/cart/items')
+      .set(auth(buyer))
+      .send({ medicineId, quantity: 1 })
+      .expect(200);
+    const first = await request(app)
+      .post('/api/orders')
+      .set(auth(buyer))
+      .send({ idempotencyKey: reuseKey, delivery })
+      .expect(201);
+    const firstOrder = first.body.data.order;
+    assert.equal(firstOrder.userId, buyerId);
+    assert.ok(firstOrder.orderNumber.startsWith('MD-'));
+
+    // Cancel it, then place another order with the SAME client key.
+    await request(app)
+      .post(`/api/users/orders/${firstOrder.id}/cancel`)
+      .set(auth(buyer))
+      .expect(200);
+
+    await request(app)
+      .post('/api/cart/items')
+      .set(auth(buyer))
+      .send({ medicineId, quantity: 1 })
+      .expect(200);
+    const second = await request(app)
+      .post('/api/orders')
+      .set(auth(buyer))
+      .send({ idempotencyKey: reuseKey, delivery })
+      .expect(201);
+    const secondOrder = second.body.data.order;
+
+    assert.notEqual(secondOrder.id, firstOrder.id);
+    assert.notEqual(secondOrder.orderNumber, firstOrder.orderNumber);
+    assert.equal(secondOrder.userId, buyerId);
+
+    // Another user cannot read either order or list them.
+    const denied = await request(app)
+      .get(`/api/users/orders/${secondOrder.id}`)
+      .set(auth(other));
+    assert.equal(denied.status, 404);
+    const otherList = await request(app).get('/api/users/orders').set(auth(other)).expect(200);
+    assert.ok(
+      !otherList.body.data.items.some((item) =>
+        [firstOrder.id, secondOrder.id].includes(item.id),
+      ),
+    );
+
+    // Another user cannot create a payment for somebody else's order.
+    const deniedPayment = await request(app)
+      .post('/api/payments/create-checkout-session')
+      .set(auth(other))
+      .send({ orderId: secondOrder.id });
+    assert.equal(deniedPayment.status, 404);
+
+    // Each order owns exactly one payment, readable only by its owner.
+    const firstPayment = await Payment.create({
+      user: buyerId,
+      order: firstOrder.id,
+      amount: 100,
+      status: 'pending',
+    });
+    await Payment.create({ user: buyerId, order: secondOrder.id, amount: 100, status: 'pending' });
+    await assert.rejects(() =>
+      Payment.create({ user: buyerId, order: secondOrder.id, amount: 50, status: 'pending' }),
+    );
+    const deniedPaymentRead = await request(app)
+      .get(`/api/payments/${firstPayment.id}`)
+      .set(auth(other));
+    assert.equal(deniedPaymentRead.status, 404);
   });
 });

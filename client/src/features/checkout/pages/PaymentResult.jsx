@@ -64,8 +64,12 @@ export default function PaymentResult({ variant = "success" }) {
   });
 
   useEffect(() => {
-    if (paymentQuery.data?.status === "paid") clearCheckoutIdempotencyKey();
-  }, [paymentQuery.data?.status]);
+    // A paid, failed or cancelled checkout is terminal: the next purchase must
+    // start with a fresh key so it creates a new order and payment.
+    if (variant !== "success" || paymentQuery.data?.status === "paid") {
+      clearCheckoutIdempotencyKey();
+    }
+  }, [paymentQuery.data?.status, variant]);
 
   const payment = paymentQuery.data;
   const order = orderQuery.data;

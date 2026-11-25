@@ -3,7 +3,7 @@ import { Ban, CheckCircle2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/features/dashboard/components/StatusBadge";
 import { ConfirmDialog } from "@/features/dashboard/components/ConfirmDialog";
-import { ROLES } from "@/constants/roles";
+import { ASSIGNABLE_ROLES, ROLES } from "@/constants/roles";
 import {
   AdminContent,
   AdminPageHeader,
@@ -11,6 +11,10 @@ import {
   SearchInput,
 } from "../components/AdminUI";
 import { useAdminUsers, useDeleteUser, useUpdateUserRole, useUpdateUserStatus } from "../hooks/useAdmin";
+
+// Admin is granted by VITE_ADMIN_EMAIL only; the UI can assign user/seller roles.
+const ASSIGNABLE_OPTIONS = ASSIGNABLE_ROLES.map((role) => role.value);
+const ROLE_OPTIONS = [...new Set(Object.values(ROLES))];
 
 export default function AdminUsers() {
   const [page, setPage] = useState(1);
@@ -41,7 +45,7 @@ export default function AdminUsers() {
           aria-label="Filter by role"
         >
           <option value="">All roles</option>
-          {Object.values(ROLES).map((item) => <option key={item} value={item}>{item}</option>)}
+          {ROLE_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
         <select
           value={status}
@@ -68,7 +72,7 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {query.data.items.map((user) => (
+              {(query.data?.items ?? []).map((user) => (
                 <tr key={user.id}>
                   <td className="px-4 py-3">
                     <p className="font-medium">{user.username}</p>
@@ -81,14 +85,16 @@ export default function AdminUsers() {
                       className="rounded-control border border-line bg-background px-2 py-1 text-sm capitalize"
                       aria-label={`Role for ${user.username}`}
                     >
-                      {Object.values(ROLES).map((item) => <option key={item} value={item}>{item}</option>)}
+                      {[...new Set([...ASSIGNABLE_OPTIONS, user.role])].map((item) => (
+                        <option key={item} value={item}>{item}</option>
+                      ))}
                     </select>
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={user.isActive ? "delivered" : "cancelled"} />
+                    <StatusBadge status={user.isActive ? "active" : "blocked"} />
                   </td>
                   <td className="px-4 py-3 text-muted">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">

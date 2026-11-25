@@ -9,7 +9,8 @@ export const authRateLimiter = rateLimit({
   limit: Math.max(5, Math.floor(env.rateLimit.max / 5)),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  skip: () => isTest,
+  // Stripe signs and retries webhooks server-to-server; never 429 them.
+  skip: (req) => isTest || String(req.originalUrl ?? '').split('?')[0] === '/api/payments/webhook',
   handler: (req, res, next, options) => {
     res.setHeader('Retry-After', Math.ceil(options.windowMs / 1000));
     return sendError(res, {
@@ -25,7 +26,8 @@ export const apiRateLimiter = rateLimit({
   limit: env.rateLimit.max,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  skip: () => isTest,
+  // Stripe signs and retries webhooks server-to-server; never 429 them.
+  skip: (req) => isTest || String(req.originalUrl ?? '').split('?')[0] === '/api/payments/webhook',
   handler: (req, res, next, options) => {
     res.setHeader('Retry-After', Math.ceil(options.windowMs / 1000));
     return sendError(res, {

@@ -35,11 +35,26 @@ if (!apiUrl) {
   throw new Error("VITE_API_URL must be a non-empty string.");
 }
 
+// The Vite dev proxy only exists in `vite dev`. In a production build a
+// relative or localhost URL would send API calls to the frontend host.
+if (import.meta.env.PROD && /localhost|127\.0\.0\.1/i.test(apiUrl)) {
+  throw new Error(
+    "VITE_API_URL must point to the deployed backend in production (no localhost).",
+  );
+}
+if (import.meta.env.PROD && apiUrl.startsWith("/")) {
+  console.warn(
+    "VITE_API_URL is relative. In production set it to the full backend URL including /api.",
+  );
+}
+
 export const env = {
   VITE_APP_NAME: readString("VITE_APP_NAME", "Medico"),
   VITE_API_URL: apiUrl,
   VITE_API_TIMEOUT: readPositiveNumber("VITE_API_TIMEOUT", 15000),
   VITE_USE_FALLBACK_DATA: readBoolean("VITE_USE_FALLBACK_DATA", false),
+  // The single account allowed into the admin dashboard (compared case-insensitively).
+  VITE_ADMIN_EMAIL: readString("VITE_ADMIN_EMAIL", "").toLowerCase(),
   // "firebase" keeps Firebase in charge of email/password; "backend" uses
   // POST /api/auth/register and /api/auth/login with bcrypt hashes.
   VITE_AUTH_MODE: readString("VITE_AUTH_MODE", "firebase"),

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { setAccessTokenGetter, setTokenRefresher } from "@/lib/api";
 import { notify } from "@/lib/notify";
-import { ROLES } from "@/constants/roles";
 import { env } from "@/config/env";
 import { AuthContext } from "./authContext.jsx";
 import * as authService from "@/features/auth/services/authServices";
-import { hasBackendSession } from "@/features/auth/utils/tokenStore";
+import { clearTokens, hasBackendSession } from "@/features/auth/utils/tokenStore";
+import { isConfiguredAdminEmail, normalizeUserForApp } from "@/features/auth/utils/adminEmail";
 import { mergeGuestCart } from "@/features/cart/services/cartServices";
 
 export const AuthProvider = ({ children }) => {
@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = authService.observeAuth((nextUser) => {
       if (!active) return;
 
-      setUser(nextUser);
+      setUser(normalizeUserForApp(nextUser));
       setLoading(false);
     });
 
@@ -53,14 +53,14 @@ export const AuthProvider = ({ children }) => {
     }
   }, [loading, user]);
 
-  const runAction = useCallback(async (action, successMessage) => {
+  const runAction = useCallback(async (action, successMessage, { updateUser = true } = {}) => {
     setSubmitting(true);
     setError(null);
 
     try {
       const result = await action();
 
-      if (result?.user) setUser(result.user);
+      if (updateUser && result?.user) setUser(normalizeUserForApp(result.user));
       if (successMessage) notify.success(successMessage);
 
       return result;
@@ -89,14 +89,31 @@ export const AuthProvider = ({ children }) => {
   );
 
   const register = useCallback(
-    (values) =>
-      runAction(
+    async (values) => {
+      // Registration creates the account but must NOT start a signed-in
+      // session: the user is sent to /login to authenticate explicitly, and
+      // PublicRoute would otherwise bounce them straight back to /dashboard.
+      const result = await runAction(
         () =>
           env.VITE_AUTH_MODE === "backend"
             ? authService.registerWithBackend(values)
             : authService.registerWithEmail(values),
-        "Your account is ready. Welcome to Medico!",
-      ),
+        "Account created. Please log in to continue.",
+        { updateUser: false },
+      );
+
+      if (result) {
+        clearTokens();
+
+        if (authService.isFirebaseEnabled()) {
+          await authService.signOutUser().catch(() => {
+            /* A missing Firebase session is fine in backend mode. */
+          });
+        }
+      }
+
+      return result;
+    },
     [runAction],
   );
 
@@ -179,7 +196,8 @@ export const AuthProvider = ({ children }) => {
       error,
       isAuthenticated: Boolean(user),
       role: user?.role ?? null,
-      isAdmin: user?.role === ROLES.ADMIN,
+      // The allowlisted email is the single source of truth for admin access.
+      isAdmin: isConfiguredAdminEmail(user?.email),
       login,
       register,
       loginWithGoogle,

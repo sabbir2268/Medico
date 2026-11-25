@@ -35,7 +35,7 @@ function normalizeError(error) {
   if (error?.code === 11000) {
     return {
       statusCode: 409,
-      message: 'Duplicate value for a unique field',
+      message: `Duplicate value for unique field "${Object.keys(error.keyValue ?? {})[0] ?? 'unknown'}"`,
       code: ERROR_CODES.DUPLICATE_KEY,
       errors: error.keyValue,
     };

@@ -12,7 +12,8 @@ export function requireMedicineOwnership(req, res, next) {
       }
 
       const isOwner = String(medicine.seller) === String(req.user._id);
-      if (req.user.role !== ROLES.ADMIN && !isOwner) {
+      const role = req.auth?.role ?? req.user.role;
+      if (role !== ROLES.ADMIN && !isOwner) {
         throw new ApiError(403, 'You can only manage medicines you listed.', {
           code: ERROR_CODES.FORBIDDEN,
         });

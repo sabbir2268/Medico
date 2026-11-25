@@ -13,11 +13,19 @@ function round(value) {
   return Math.round(value * 100) / 100;
 }
 
+/** Unique, human-readable id created once per order (never reused). */
+function generateOrderNumber() {
+  const stamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `MD-${stamp}-${random}`;
+}
+
 export function serializeOrder(doc) {
   if (!doc) return null;
   return {
     id: String(doc._id),
-    orderNumber: `MD-${String(doc._id).slice(-8).toUpperCase()}`,
+    userId: String(doc.user),
+    orderNumber: doc.orderNumber ?? `MD-${String(doc._id).slice(-8).toUpperCase()}`,
     items: doc.items.map((item) => ({ ...(item.toObject?.() ?? item), id: String(item.medicine) })),
     delivery: doc.delivery,
     pricing: doc.pricing,
@@ -62,7 +70,23 @@ function snapshotItem(medicine, quantity) {
 export async function createOrderFromCart(userId, payload, idempotencyKey = null) {
   if (idempotencyKey) {
     const existing = await Order.findOne({ user: userId, idempotencyKey }).lean();
-    if (existing) return serializeOrder(existing);
+
+    if (existing) {
+      const isTerminal =
+        existing.status === 'cancelled' ||
+        existing.status === 'delivered' ||
+        ['paid', 'failed', 'refunded'].includes(existing.paymentStatus);
+
+      if (!isTerminal) return serializeOrder(existing);
+
+      // The previous order using this key can no longer be paid. Release the
+      // key so this checkout creates a brand-new order with its own id.
+      // Otherwise every retry returns the cancelled order and payment fails.
+      await Order.updateOne(
+        { _id: existing._id, idempotencyKey },
+        { $unset: { idempotencyKey: 1 } },
+      );
+    }
   }
 
   const cart = await Cart.findOne({ user: userId });
@@ -139,6 +163,7 @@ export async function createOrderFromCart(userId, payload, idempotencyKey = null
   try {
     const order = await Order.create({
       user: userId,
+      orderNumber: generateOrderNumber(),
       items,
       delivery: payload.delivery,
       pricing: { subtotal, discount, deliveryCharge, total },

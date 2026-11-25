@@ -9,6 +9,7 @@ export function ConfirmDialog({
   confirmLabel = "Confirm",
   cancelLabel = "Go back",
   loading = false,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
   children,
@@ -51,7 +52,7 @@ export function ConfirmDialog({
           <Button variant="outline" onClick={onCancel} disabled={loading}>
             {cancelLabel}
           </Button>
-          <Button ref={confirmRef} variant="danger" onClick={onConfirm} disabled={loading}>
+          <Button ref={confirmRef} variant="danger" onClick={onConfirm} disabled={loading || confirmDisabled}>
             {loading ? "Working…" : confirmLabel}
           </Button>
         </div>

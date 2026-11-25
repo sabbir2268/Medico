@@ -10,6 +10,13 @@ const TONES = {
   failed: "bg-destructive/10 text-destructive",
   expired: "bg-muted/20 text-muted",
   refunded: "bg-warning/10 text-warning",
+  active: "bg-success/10 text-success",
+  approved: "bg-success/10 text-success",
+  hidden: "bg-warning/10 text-warning",
+  inactive: "bg-muted/20 text-muted",
+  blocked: "bg-destructive/10 text-destructive",
+  suspended: "bg-warning/10 text-warning",
+  rejected: "bg-destructive/10 text-destructive",
 };
 
 export function StatusBadge({ status }) {

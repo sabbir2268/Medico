@@ -44,7 +44,7 @@ export default function AdminPayments() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {query.data.items.map((payment) => (
+              {(query.data?.items ?? []).map((payment) => (
                 <tr key={payment.id}>
                   <td className="px-4 py-3 font-medium">{payment.orderNumber}</td>
                   <td className="px-4 py-3 font-semibold">{formatPrice(payment.amount)} {payment.currency?.toUpperCase()}</td>

@@ -14,7 +14,7 @@ import { PATHS } from "@/utils/paths";
 function Register() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, loginWithGoogle, loginWithGitHub, submitting } = useAuth();
+  const { register, loginWithGoogle, loginWithGitHub, submitting, error } = useAuth();
   const {
     register: formRegister,
     control,
@@ -37,7 +37,13 @@ function Register() {
   const onSubmit = async (values) => {
     const result = await register(values);
 
-    if (result) navigate(redirectTo, { replace: true });
+    // Registration does not sign the user in; send them to the login page.
+    // Keep the original "from" location so login can still honor it later.
+    if (result)
+      navigate(PATHS.LOGIN, {
+        replace: true,
+        state: { ...location.state, registeredEmail: values.email },
+      });
   };
 
   const onSocialLogin = async (provider) => {
@@ -52,6 +58,14 @@ function Register() {
       <p className="mt-1 text-sm text-muted">Choose how you want to use Medico.</p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-control border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+          >
+            {error.errors?.email ?? error.errors?.username ?? error.message}
+          </p>
+        )}
         <FormField
           label="Username"
           name="username"

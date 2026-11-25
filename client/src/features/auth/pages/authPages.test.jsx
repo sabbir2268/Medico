@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ROLES } from "@/constants/roles";
 import ForgotPassword from "./ForgotPassword";
@@ -123,6 +123,29 @@ describe("registration page", () => {
         expect.objectContaining({ role: ROLES.SELLER }),
       ),
     );
+  });
+
+  it("redirects to login after a successful registration", async () => {
+    const user = userEvent.setup();
+    authState.value.user = null;
+
+    render(
+      <MemoryRouter initialEntries={["/register"]}>
+        <Routes>
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByLabelText("Username"), "Asha Patel");
+    await user.type(screen.getByLabelText("Email"), "asha@example.com");
+    await user.type(screen.getByLabelText("Password"), "StrongPass1");
+    await user.type(screen.getByLabelText("Confirm password"), "StrongPass1");
+    await user.click(screen.getByRole("button", { name: "Register" }));
+
+    expect(await screen.findByRole("heading", { name: "Login" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toHaveValue("asha@example.com");
   });
 
   it("blocks weak passwords before calling the auth action", async () => {

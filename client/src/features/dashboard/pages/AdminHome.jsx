@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { AlertCircle, Boxes, CircleDollarSign, ClipboardList, Store, Users } from "lucide-react";
+import { StatePanel } from "@/components/shared/StatePanel";
 import { useAdminAnalytics, useAdminDashboard } from "@/features/admin/hooks/useAdmin";
 import { formatPrice } from "@/lib/format";
 import { PATHS } from "@/utils/paths";
@@ -27,6 +28,21 @@ export default function AdminHome() {
   const [to, setTo] = useState("");
   const dashboard = useAdminDashboard();
   const analytics = useAdminAnalytics({ from: from || undefined, to: to || undefined });
+
+  if (dashboard.isError || analytics.isError) {
+    return (
+      <StatePanel
+        variant="error"
+        title="Couldn't load the admin overview"
+        description={dashboard.error?.message ?? analytics.error?.message}
+        actionLabel="Try again"
+        onAction={() => {
+          dashboard.refetch();
+          analytics.refetch();
+        }}
+      />
+    );
+  }
 
   const summary = dashboard.data ?? {};
   const series = analytics.data?.series ?? [];

@@ -7,6 +7,11 @@ import { ApiError } from '../utils/ApiError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
 import { buildPagination } from '../utils/pagination.js';
 
+// Bump this when the Checkout Session payload changes: Stripe caches error
+// responses against the idempotency key, so a retried request with the old key
+// would replay the deprecated `payment_method_types` error for up to 24 hours.
+const CHECKOUT_PAYLOAD_VERSION = 2;
+
 export function serializePayment(doc) {
   if (!doc) return null;
   return {
@@ -40,8 +45,15 @@ async function restoreOrderStock(order) {
   }
 }
 
-/** Creates a real Stripe Checkout session from trusted order snapshot prices. */
-export async function createCheckoutSession(userId, orderId, idempotencyKey = null) {
+/**
+ * Creates a real Stripe Checkout session from trusted order snapshot prices.
+ *
+ * The Stripe idempotency key is derived from the order id and the payload
+ * version. A client-supplied key must NEVER be forwarded here: the browser
+ * reuses one stable key for order creation and checkout, and Stripe rejects a
+ * reused key when the request parameters change (e.g. after an API migration).
+ */
+export async function createCheckoutSession(userId, orderId) {
   const order = await Order.findOne({ _id: orderId, user: userId });
   if (!order) {
     throw new ApiError(404, 'Order not found.', { code: ERROR_CODES.NOT_FOUND });
@@ -93,7 +105,9 @@ export async function createCheckoutSession(userId, orderId, idempotencyKey = nu
   const session = await stripe.checkout.sessions.create(
     {
       mode: 'payment',
-      payment_method_types: ['card'],
+      // Stripe removed `payment_method_types` from Checkout Sessions
+      // (2026-09-30). Use `allowed_payment_method_types` to keep card-only.
+      allowed_payment_method_types: ['card'],
       line_items: lineItems,
       client_reference_id: String(order._id),
       customer_email: undefined,
@@ -101,23 +115,32 @@ export async function createCheckoutSession(userId, orderId, idempotencyKey = nu
       success_url: `${env.stripe.successUrl}?order_id=${order._id}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${env.stripe.cancelUrl}?order_id=${order._id}`,
     },
-    { idempotencyKey: idempotencyKey ?? `checkout-${order._id}` },
+    { idempotencyKey: `checkout-v${CHECKOUT_PAYLOAD_VERSION}-${order._id}` },
   );
+
+  const paymentFields = {
+    user: userId,
+    stripeSessionId: session.id,
+    amount: order.pricing.total,
+    currency: 'usd',
+    status: 'pending',
+    checkoutUrl: session.url ?? '',
+  };
+  const paymentUpdate = { $set: paymentFields };
+
+  // These two fields are sparse+unique. Writing `null` indexes the null value,
+  // so the second payment collides with the first one. Omit/unset when Stripe
+  // does not return an id yet (common for Checkout Sessions).
+  if (session.payment_intent) {
+    paymentFields.stripePaymentIntentId = session.payment_intent;
+  } else {
+    paymentUpdate.$unset = { stripePaymentIntentId: 1 };
+  }
 
   const payment = await Payment.findOneAndUpdate(
     { order: order._id },
-    {
-      $set: {
-        user: userId,
-        stripeSessionId: session.id,
-        stripePaymentIntentId: session.payment_intent ?? null,
-        amount: order.pricing.total,
-        currency: 'usd',
-        status: 'pending',
-        checkoutUrl: session.url ?? '',
-      },
-    },
-    { upsert: true, new: true, returnDocument: 'after' },
+    paymentUpdate,
+    { upsert: true, returnDocument: 'after' },
   );
 
   order.payment = payment._id;
@@ -174,7 +197,9 @@ export async function handleWebhookEvent(event) {
   if (paid) {
     if (payment.status === 'paid') return { processed: false, duplicate: true };
     payment.status = 'paid';
-    payment.stripePaymentIntentId = session.payment_intent ?? payment.stripePaymentIntentId;
+    if (session.payment_intent && session.payment_intent !== payment.stripePaymentIntentId) {
+      payment.stripePaymentIntentId = session.payment_intent;
+    }
     payment.lastEventId = event.id;
     await payment.save();
 

@@ -28,12 +28,12 @@ export const useAdminOrders = (params) => useList(adminKeys.orders, api.fetchOrd
 export const useAdminPayments = (params) => useList(adminKeys.payments, api.fetchPayments, params);
 export const useAdminAuditLogs = (params) => useList(adminKeys.auditLogs, api.fetchAuditLogs, params);
 export const useAdminHealthTips = (params) =>
-  useQuery({ queryKey: adminKeys.healthTips(), queryFn: () => api.fetchHealthTips(params), ...options });
+  useList(adminKeys.healthTips, api.fetchHealthTips, params);
 
-export const useAdminAdvertisements = () =>
+export const useAdminAdvertisements = (params) =>
   useQuery({
-    queryKey: adminKeys.advertisements(),
-    queryFn: api.fetchAdvertisements,
+    queryKey: adminKeys.advertisements(params),
+    queryFn: () => api.fetchAdvertisements(params),
     ...options,
   });
 

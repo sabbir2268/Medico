@@ -57,6 +57,8 @@ export function serializeMedicine(doc) {
     stock,
     inStock: doc.status === 'active' && stock > 0,
     status: doc.status ?? 'active',
+    isApproved: doc.isApproved !== false,
+    isHidden: Boolean(doc.isHidden),
     isFeatured: Boolean(doc.isFeatured),
     prescriptionRequired: Boolean(doc.prescriptionRequired),
     rating: Number(doc.rating ?? 0),

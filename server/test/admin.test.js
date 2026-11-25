@@ -5,6 +5,9 @@ import mongoose from 'mongoose';
 
 process.env.NODE_ENV = 'test';
 process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/medico-test-admin';
+// Admin access is granted only to this allowlisted email (set before imports
+// so config/env.js picks it up instead of the value in .env).
+process.env.ADMIN_EMAIL = 'admin@test.example';
 // Set empty (not delete): dotenv would otherwise reload them from .env.
 process.env.STRIPE_SECRET_KEY = '';
 process.env.STRIPE_WEBHOOK_SECRET = '';
@@ -65,7 +68,19 @@ before(async () => {
     AuditLog.deleteMany({}),
   ]);
 
-  adminUser = await createUser('admin@test.example', 'admin');
+  // The allowlisted admin registers like any other user (stored role = user).
+  await request(app)
+    .post('/api/auth/register')
+    .send({
+      username: 'admin',
+      email: 'admin@test.example',
+      password: 'StrongPass1',
+      role: 'user',
+    })
+    .expect(201);
+  adminUser = await User.findOne({ email: 'admin@test.example' });
+
+  // A non-allowlisted account with a stored admin role must NOT gain access.
   await createUser('admin2@test.example', 'admin');
   sellerUser = await createUser('seller@test.example', 'seller');
   const regular = await createUser('user@test.example', 'user');
@@ -100,6 +115,18 @@ describe('admin authorization', () => {
   test('anonymous requests are unauthorized', async () => {
     const response = await request(app).get('/api/admin/dashboard');
     assert.equal(response.status, 401);
+  });
+
+  test('allowlisted email gets admin access even though its stored role is user', async () => {
+    assert.equal(adminUser.role, 'user');
+    await request(app).get('/api/admin/dashboard').set(auth(adminToken)).expect(200);
+  });
+
+  test('denies a database admin whose email is not allowlisted', async () => {
+    const rogueToken = await tokenFor('admin2@test.example');
+    const response = await request(app).get('/api/admin/dashboard').set(auth(rogueToken));
+    assert.equal(response.status, 403);
+    assert.equal(response.body.code, 'FORBIDDEN');
   });
 });
 

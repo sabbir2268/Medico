@@ -7,6 +7,7 @@ const AUTH_EXCHANGE_ENDPOINTS = [
   "/auth/register",
   "/auth/social",
   "/auth/refresh",
+  "/auth/firebase",
 ];
 
 let accessTokenGetter = null;

@@ -1,4 +1,5 @@
 import { AuditLog } from '../models/AuditLog.js';
+import { buildPagination } from '../utils/pagination.js';
 
 /** Records sensitive admin actions. Never include secrets in `details`. */
 export async function recordAudit({ adminId, action, targetType, targetId = '', details = {}, req }) {
@@ -22,5 +23,11 @@ export async function listAuditLogs({ page = 1, limit = 20 } = {}) {
       .skip((page - 1) * limit)
       .limit(limit),
   ]);
-  return { items, total, page, limit };
+  return {
+    items,
+    total,
+    page,
+    limit,
+    pagination: buildPagination({ page, limit, total }),
+  };
 }

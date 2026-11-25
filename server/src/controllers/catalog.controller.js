@@ -84,7 +84,7 @@ export const createMedicine = asyncHandler(async (req, res) => {
     ...values,
     // Seller identity always comes from the verified token.
     seller: req.user._id,
-    isFeatured: req.user.role === ROLES.ADMIN ? values.isFeatured : false,
+    isFeatured: req.auth?.role === ROLES.ADMIN ? values.isFeatured : false,
   });
   const doc = await Medicine.findById(medicine._id)
     .populate({ path: 'category', match: { isActive: true } })
@@ -101,7 +101,7 @@ export const createMedicine = asyncHandler(async (req, res) => {
 export const updateMedicine = asyncHandler(async (req, res) => {
   const medicine = req.medicine;
   Object.assign(medicine, req.validated.body);
-  if (req.user.role !== ROLES.ADMIN) medicine.isFeatured = false;
+  if (req.auth?.role !== ROLES.ADMIN) medicine.isFeatured = false;
   await medicine.save();
 
   const doc = await Medicine.findById(medicine._id)

@@ -6,8 +6,10 @@ const paymentSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     order: { type: Schema.Types.ObjectId, ref: 'Order', required: true, unique: true },
-    stripeSessionId: { type: String, default: null, sparse: true, unique: true, index: true },
-    stripePaymentIntentId: { type: String, default: null, sparse: true, unique: true },
+    // No `default: null`: a null value would still be indexed by a sparse
+    // unique index, so the second pending payment would collide on null.
+    stripeSessionId: { type: String, sparse: true, unique: true, index: true },
+    stripePaymentIntentId: { type: String, sparse: true, unique: true },
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, default: 'usd' },
     status: { type: String, enum: PAYMENT_STATUSES, default: 'pending', index: true },

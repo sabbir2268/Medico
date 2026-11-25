@@ -54,7 +54,7 @@ export default function AdminSellers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {query.data.items.map((seller) => (
+              {(query.data?.items ?? []).map((seller) => (
                 <tr key={seller.id}>
                   <td className="px-4 py-3">
                     <p className="font-medium">{seller.username}</p>
@@ -90,6 +90,7 @@ export default function AdminSellers() {
         description="This decision is recorded in the admin audit log."
         confirmLabel={`Confirm ${decision?.status ?? ""}`}
         loading={mutation.isPending}
+        requireReason={decision?.status === "rejected"}
         onCancel={() => setDecision(null)}
         onConfirm={async (reason) => {
           await mutation.mutateAsync({ id: decision.id, status: decision.status, reason });

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ConfirmDialog } from "@/features/dashboard/components/ConfirmDialog";
 
-export function ReasonDialog({ open, title, description, confirmLabel, loading, onConfirm, onCancel }) {
+export function ReasonDialog({ open, title, description, confirmLabel, loading, requireReason = false, onConfirm, onCancel }) {
   const [reason, setReason] = useState("");
 
   return (
@@ -11,6 +11,7 @@ export function ReasonDialog({ open, title, description, confirmLabel, loading, 
       description={description}
       confirmLabel={confirmLabel}
       loading={loading}
+      confirmDisabled={requireReason && !reason.trim()}
       onCancel={() => {
         setReason("");
         onCancel();
@@ -21,7 +22,9 @@ export function ReasonDialog({ open, title, description, confirmLabel, loading, 
       }}
     >
       <label className="mt-4 block text-sm">
-        <span className="mb-1.5 block font-medium">Reason (optional)</span>
+        <span className="mb-1.5 block font-medium">
+          {requireReason ? "Reason (required)" : "Reason (optional)"}
+        </span>
         <textarea
           rows={3}
           value={reason}

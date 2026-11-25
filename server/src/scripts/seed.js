@@ -55,6 +55,14 @@ const MEDICINES = [
 ];
 
 async function seed() {
+  // Contains demo credentials (seller@medico.test). Never run against
+  // production data unless explicitly and deliberately opted in.
+  if (env.nodeEnv === 'production' && process.env.ALLOW_PRODUCTION_SEED !== 'true') {
+    throw new Error(
+      'Refusing to seed a production database. This script creates demo credentials; run it only in development.',
+    );
+  }
+
   await mongoose.connect(env.mongodbUri, {
     serverSelectionTimeoutMS: env.mongoServerSelectionTimeoutMs,
   });
@@ -79,7 +87,6 @@ async function seed() {
   }
 
   const sellerHash = await bcrypt.hash('Seller@123', 12);
-  const adminHash = await bcrypt.hash('Admin@123', 12);
 
   const seller = await User.findOneAndUpdate(
     { email: 'seller@medico.test' },
@@ -95,20 +102,9 @@ async function seed() {
     { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
   );
 
-  await User.findOneAndUpdate(
-    { email: 'admin@medico.test' },
-    {
-      $set: {
-        username: 'Medico Admin',
-        passwordHash: adminHash,
-        role: ROLES.ADMIN,
-        isActive: true,
-        provider: 'password',
-      },
-    },
-    { upsert: true, setDefaultsOnInsert: true },
-  );
-
+  // The admin account is NOT seeded. It must register through the normal
+  // registration form with ADMIN_EMAIL; the email allowlist then grants admin
+  // access on login. This keeps the admin password owned by the admin.
   const categoryBySlug = new Map(categories.map((category) => [category.slug, category]));
 
   for (const [index, row] of MEDICINES.entries()) {

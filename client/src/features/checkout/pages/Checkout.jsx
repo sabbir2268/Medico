@@ -248,7 +248,7 @@ export default function Checkout() {
 
           <Button type="submit" size="lg" className="w-full" disabled={submitting}>
             <LockKeyhole className="h-4 w-4" aria-hidden="true" />
-            {submitting ? "Creating secure checkout…" : `Pay ${formatPrice(cart.total)} with Stripe`}
+            {submitting ? "Creating secure checkout…" : "Proceed to Payment"}
           </Button>
           <p className="flex items-center justify-center gap-2 text-xs text-muted">
             <ShieldCheck className="h-4 w-4" aria-hidden="true" />

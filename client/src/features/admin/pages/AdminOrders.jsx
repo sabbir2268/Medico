@@ -38,7 +38,7 @@ export default function AdminOrders() {
 
       <AdminContent query={query} emptyTitle="No orders" emptyDescription="Orders will appear here after checkout.">
         <div className="space-y-2">
-          {query.data.items.map((order) => (
+          {(query.data?.items ?? []).map((order) => (
             <div key={order.id} className="rounded-card border border-line bg-surface p-4 shadow-card">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -60,7 +60,10 @@ export default function AdminOrders() {
                 <div className="mt-4 border-t border-line pt-3">
                   {order.items.map((item, index) => (
                     <div key={index} className="flex flex-wrap justify-between gap-2 py-1.5 text-sm">
-                      <span>{item.name} · {item.quantity} × {formatPrice(item.unitPrice)}</span>
+                      <span>
+                        {item.name} · {item.quantity} ×{" "}
+                        {formatPrice(item.unitPrice ?? item.lineTotal / item.quantity)}
+                      </span>
                       <span className="text-muted">{item.sellerName} · {item.fulfillmentStatus}</span>
                     </div>
                   ))}

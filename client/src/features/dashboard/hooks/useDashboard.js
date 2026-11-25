@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notify } from "@/lib/notify";
+import { clearCheckoutIdempotencyKey } from "@/features/checkout/services/checkoutServices";
 import { dashboardKeys } from "../constants/queryKeys";
 import * as service from "../services/dashboardServices";
 
@@ -41,6 +42,9 @@ export function useCancelOrder() {
   return useMutation({
     mutationFn: service.cancelOrder,
     onSuccess: () => {
+      // A cancelled order can never be paid. Drop the checkout key so the next
+      // purchase creates a fresh order instead of reusing the cancelled one.
+      clearCheckoutIdempotencyKey();
       notify.success("Order cancelled and stock restored.");
       queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
     },

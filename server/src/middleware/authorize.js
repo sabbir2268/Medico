@@ -11,7 +11,9 @@ export function authorize(...allowedRoles) {
       );
     }
 
-    if (allowedRoles.length > 0 && !allowedRoles.includes(req.user.role)) {
+    const role = req.auth?.role ?? req.user.role;
+
+    if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
       return next(
         new ApiError(403, 'You do not have permission to perform this action.', {
           code: ERROR_CODES.FORBIDDEN,

@@ -3,6 +3,7 @@ import { IMGBB_UPLOAD_URL, isImgbbConfigured } from '../config/imgbb.js';
 import { env } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
+import { logger } from '../utils/logger.js';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -107,11 +108,21 @@ function uploadToCloudinary(file, sellerId) {
   });
 }
 
-/** Uploads a validated image; imgbb first, Cloudinary as an optional fallback. */
+/** Uploads a validated image; imgbb first, Cloudinary as a real fallback. */
 export async function uploadImage(file, sellerId = 'shared') {
   validateFile(file);
+
+  if (isImgbbConfigured && isCloudinaryConfigured) {
+    try {
+      return await uploadToImgbb(file);
+    } catch (error) {
+      logger.warn(`imgbb upload failed (${error.message}); trying Cloudinary.`);
+      return uploadToCloudinary(file, sellerId);
+    }
+  }
   if (isImgbbConfigured) return uploadToImgbb(file);
   if (isCloudinaryConfigured) return uploadToCloudinary(file, sellerId);
+
   throw new ApiError(503, 'Image upload is not configured on the server.', {
     code: ERROR_CODES.UPLOAD_NOT_CONFIGURED,
   });

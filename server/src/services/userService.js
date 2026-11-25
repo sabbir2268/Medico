@@ -1,5 +1,5 @@
 import { User } from '../models/User.js';
-import { ROLES, USER_ROLES } from '../constants/roles.js';
+import { ROLES, ASSIGNABLE_ROLES } from '../constants/roles.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ERROR_CODES } from '../constants/errorCodes.js';
 
@@ -35,7 +35,9 @@ export async function findOrCreateUserFromFirebase(decoded) {
   if (!user) {
     const existingByEmail = await User.findOne({ email });
     const claimRole = decoded.role;
-    const role = USER_ROLES.includes(claimRole) ? claimRole : ROLES.USER;
+    // A Firebase custom claim can never create an admin: the allowlisted
+    // ADMIN_EMAIL is the single source of truth for admin access.
+    const role = ASSIGNABLE_ROLES.includes(claimRole) ? claimRole : ROLES.USER;
 
     if (existingByEmail) {
       existingByEmail.firebaseUid = firebaseUid;

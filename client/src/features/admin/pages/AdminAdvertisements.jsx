@@ -46,6 +46,7 @@ export default function AdminAdvertisements() {
         description="This decision is recorded in the audit log and controls public visibility."
         confirmLabel="Confirm"
         loading={mutation.isPending}
+        requireReason={decision?.status === "rejected"}
         onCancel={() => setDecision(null)}
         onConfirm={async (reason) => {
           await mutation.mutateAsync({ id: decision.id, status: decision.status, reason });

@@ -36,7 +36,10 @@ function readString(name, fallback = '') {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : fallback;
 }
 
-const nodeEnv = process.env.NODE_ENV || 'development';
+// Render sets RENDER=true at runtime. Fail safe to production rules there even
+// if NODE_ENV was forgotten in the dashboard; local development is unchanged.
+const nodeEnv =
+  process.env.NODE_ENV || (process.env.RENDER === 'true' ? 'production' : 'development');
 
 if (!ALLOWED_NODE_ENVS.includes(nodeEnv)) {
   throw new Error(`Invalid NODE_ENV "${nodeEnv}". Allowed values: ${ALLOWED_NODE_ENVS.join(', ')}.`);
@@ -47,6 +50,29 @@ const isProduction = nodeEnv === 'production';
 const corsOrigin = readString('CORS_ORIGIN', isProduction ? '' : '*');
 if (isProduction && (!corsOrigin || corsOrigin === '*')) {
   throw new Error('CORS_ORIGIN must list explicit origins in production (a comma-separated list is supported).');
+}
+
+if (isProduction && !readString('ADMIN_EMAIL')) {
+  throw new Error('ADMIN_EMAIL must be set in production (the single admin allowlist entry).');
+}
+
+const stripeSecretKey = readString('STRIPE_SECRET_KEY');
+const stripeWebhookSecret = readString('STRIPE_WEBHOOK_SECRET');
+
+if (isProduction && stripeSecretKey) {
+  if (!stripeWebhookSecret) {
+    throw new Error(
+      'STRIPE_WEBHOOK_SECRET must be set in production when payments are enabled; webhooks are the only source of truth for paid orders.',
+    );
+  }
+
+  // Never let Checkout redirect real customers to a developer's localhost.
+  for (const name of ['STRIPE_SUCCESS_URL', 'STRIPE_CANCEL_URL']) {
+    const value = readString(name);
+    if (!value || /localhost|127\.0\.0\.1/i.test(value)) {
+      throw new Error(`${name} must be a deployed, non-localhost URL in production.`);
+    }
+  }
 }
 
 /**
@@ -68,6 +94,8 @@ export const env = Object.freeze({
   port: toInteger('PORT', 5000, { min: 1 }),
   mongodbUri: process.env.MONGODB_URI.trim(),
   mongoServerSelectionTimeoutMs: toInteger('MONGO_SERVER_SELECTION_TIMEOUT_MS', 5000, { min: 1 }),
+  // The one account that is allowed to use the admin API/dashboard.
+  adminEmail: readString('ADMIN_EMAIL', '').toLowerCase(),
   corsOrigin,
   morganFormat: readString('MORGAN_FORMAT', 'dev'),
   rateLimit: Object.freeze({
@@ -90,8 +118,9 @@ export const env = Object.freeze({
     privateKey: readString('FIREBASE_PRIVATE_KEY'),
   }),
   stripe: Object.freeze({
-    secretKey: readString('STRIPE_SECRET_KEY'),
-    webhookSecret: readString('STRIPE_WEBHOOK_SECRET'),
+    secretKey: stripeSecretKey,
+    webhookSecret: stripeWebhookSecret,
+    // Localhost fallbacks are development/test only; production validates above.
     successUrl: readString('STRIPE_SUCCESS_URL', 'http://localhost:5173/payments/success'),
     cancelUrl: readString('STRIPE_CANCEL_URL', 'http://localhost:5173/payments/cancel'),
   }),

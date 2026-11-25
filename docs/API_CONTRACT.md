@@ -87,8 +87,9 @@ The client normalizer copies `code` and `errors` onto `ApiError`.
    previously issued access and refresh tokens.
 
 JWT claims: `sub` (user id), `uid` (Firebase uid), `ver` (tokenVersion), `type`,
-`iss`, `aud`, `exp`. Roles are **not** stored in tokens; middleware loads the role
-from MongoDB on every request.
+`iss`, `aud`, `exp`. Roles are **not** stored in tokens; middleware loads the account
+from MongoDB on every request and derives the effective admin role from the
+`ADMIN_EMAIL` allowlist.
 
 ### Roles
 
@@ -99,7 +100,11 @@ from MongoDB on every request.
 | `admin` | `/dashboard/admin` | All routes |
 
 Role requests are limited to `user` and `seller` by the registration Zod schema.
-Admin is assigned only in the database. Social accounts always default to `user`.
+Admin is never assigned by registration, by the admin API, or by a Firebase claim:
+it is granted only to the single `ADMIN_EMAIL` / `VITE_ADMIN_EMAIL` address at login.
+The account is stored in MongoDB with the `user` role and promoted in memory per
+request. Social accounts always default to `user` (the allowlisted email is promoted
+when it signs in).
 
 ### Endpoints
 
@@ -369,6 +374,7 @@ Protections:
 ## Seeding
 
 `npm run seed` in `server/` creates 10 categories, 6 health tips, a seller account
-(`seller@medico.test` / `Seller@123`), an admin account
-(`admin@medico.test` / `Admin@123`) and 16 medicines. It is idempotent and intended
-for development only.
+(`seller@medico.test` / `Seller@123`) and 16 medicines. It is idempotent and intended
+for development only. No admin account is seeded: the admin registers through the
+normal `/api/auth/register` endpoint using the `ADMIN_EMAIL` address, and that email
+allowlist is the only source of admin access (client and API).

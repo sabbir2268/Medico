@@ -10,12 +10,10 @@ import { sendSuccess } from '../utils/apiResponse.js';
 
 /** POST /api/payments/create-checkout-session */
 export const createCheckout = asyncHandler(async (req, res) => {
-  const { orderId, idempotencyKey } = req.validated.body;
-  const payment = await createCheckoutSession(
-    req.user._id,
-    orderId,
-    idempotencyKey ?? req.headers['idempotency-key'] ?? null,
-  );
+  const { orderId } = req.validated.body;
+  // The browser's idempotency key is for order deduplication only; the Stripe
+  // session key is derived from the order id inside the service.
+  const payment = await createCheckoutSession(req.user._id, orderId);
 
   return sendSuccess(res, {
     statusCode: 201,

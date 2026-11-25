@@ -11,14 +11,14 @@ import { PATHS } from "@/utils/paths";
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, loginWithGoogle, loginWithGitHub, submitting } = useAuth();
+  const { login, loginWithGoogle, loginWithGitHub, submitting, error } = useAuth();
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: location.state?.registeredEmail ?? "", password: "" },
   });
 
   const redirectTo = location.state?.from?.pathname ?? PATHS.DASHBOARD;
@@ -41,6 +41,14 @@ function Login() {
       <p className="mt-1 text-sm text-muted">Sign in to continue to Medico.</p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-control border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+          >
+            {error.errors?.email ?? error.message}
+          </p>
+        )}
         <FormField
           label="Email"
           name="email"
