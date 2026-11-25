@@ -6,7 +6,6 @@ import {
   listCategories,
   listHealthTips,
   listMedicines,
-  serializeCategory,
   serializeMedicine,
 } from '../services/catalog.service.js';
 import { Medicine } from '../models/Medicine.js';

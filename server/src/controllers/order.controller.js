@@ -1,5 +1,4 @@
 import {
-  cancelOrder as cancelOrderService,
   createOrderFromCart,
   getOrderForUser,
 } from '../services/order.service.js';
@@ -39,8 +38,3 @@ export const getInvoice = asyncHandler(async (req, res) => {
   return res.send(pdf);
 });
 
-/** POST /api/users/orders/:id/cancel — handled with the same service logic. */
-export const cancelOrder = asyncHandler(async (req, res) => {
-  const order = await cancelOrderService(req.user._id, req.params.id);
-  return sendSuccess(res, { message: 'Order cancelled. Stock has been restored.', data: { order } });
-});

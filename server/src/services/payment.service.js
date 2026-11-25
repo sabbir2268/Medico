@@ -110,7 +110,6 @@ export async function createCheckoutSession(userId, orderId) {
       allowed_payment_method_types: ['card'],
       line_items: lineItems,
       client_reference_id: String(order._id),
-      customer_email: undefined,
       metadata: { orderId: String(order._id), userId: String(userId) },
       success_url: `${env.stripe.successUrl}?order_id=${order._id}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${env.stripe.cancelUrl}?order_id=${order._id}`,

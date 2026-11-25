@@ -25,27 +25,6 @@ function unwrapCollection(payload) {
   return [];
 }
 
-function unwrapBody(payload) {
-  return payload && typeof payload === "object" && "data" in payload ? payload.data : payload;
-}
-
-/** GET /api/home — one request for every storefront section. */
-export async function getHomeOverview() {
-  const { data } = await apiClient.get(HOME_ENDPOINTS.overview);
-  return unwrapBody(data);
-}
-
-/** GET /api/advertisements/active — admin-managed promotional banners. */
-export async function getAdvertisements(limit = 6) {
-  try {
-    const { data } = await apiClient.get(HOME_ENDPOINTS.advertisements, { params: { limit } });
-    return { items: unwrapCollection(data), isFallback: false };
-  } catch (error) {
-    if (!env.VITE_USE_FALLBACK_DATA) throw error;
-    return { items: [], isFallback: true };
-  }
-}
-
 async function getCollection({ endpoint, params, fallback }) {
   try {
     const response = await apiClient.get(endpoint, params ? { params } : undefined);

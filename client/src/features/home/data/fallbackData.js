@@ -396,10 +396,6 @@ const CATALOG = {
 
 export const FALLBACK_MEDICINES = Object.values(CATALOG);
 
-export function findFallbackMedicine(id) {
-  return FALLBACK_MEDICINES.find((medicine) => medicine.id === id) ?? null;
-}
-
 export const FALLBACK_FEATURED = [
   CATALOG.amoxicillin,
   CATALOG.paracetamol,

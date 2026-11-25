@@ -1,4 +1,4 @@
-import { RefreshCw, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StatePanel } from "@/components/shared/StatePanel";
 
@@ -91,11 +91,3 @@ export function SearchInput({ value, onChange, placeholder = "Search…" }) {
   );
 }
 
-export function RefreshButton({ onClick, loading }) {
-  return (
-    <Button variant="outline" size="sm" onClick={onClick} disabled={loading}>
-      <RefreshCw className="h-4 w-4" aria-hidden="true" />
-      Refresh
-    </Button>
-  );
-}

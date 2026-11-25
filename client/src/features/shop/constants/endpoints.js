@@ -3,10 +3,6 @@ import { API_ROUTES } from "@/constants/api";
 /** Storefront endpoints used by the shop and category medicine pages. */
 export const SHOP_ENDPOINTS = Object.freeze({
   medicines: API_ROUTES.medicines.list,
-  medicine: API_ROUTES.medicines.detail,
-  categories: API_ROUTES.categories.list,
-  category: API_ROUTES.categories.detail,
-  categoryMedicines: API_ROUTES.categories.medicines,
 });
 
 /** URL query parameters. Keep them in sync with useCatalogParams. */

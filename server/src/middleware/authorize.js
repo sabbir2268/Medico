@@ -27,6 +27,3 @@ export function authorize(...allowedRoles) {
 
 export const requireAdmin = authorize(ROLES.ADMIN);
 export const requireSeller = authorize(ROLES.SELLER, ROLES.ADMIN);
-/** Strict seller-only guard used by the seller dashboard APIs. */
-export const requireSellerOnly = authorize(ROLES.SELLER);
-export const requirePharmacist = authorize(ROLES.PHARMACIST, ROLES.ADMIN);

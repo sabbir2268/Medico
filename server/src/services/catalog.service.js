@@ -115,7 +115,7 @@ async function resolveCategoryFilter(category) {
   return bySlug?._id ?? null;
 }
 
-function buildMedicinePipeline({ search, categoryId, sort, minPrice, maxPrice, featured, discounted, advertised }) {
+function buildMedicinePipeline({ search, categoryId, minPrice, maxPrice, featured, discounted, advertised }) {
   const match = { status: 'active', stock: { $gt: 0 }, isApproved: true, isHidden: { $ne: true } };
   if (categoryId) match.category = categoryId;
   if (featured) match.isFeatured = true;
@@ -185,7 +185,6 @@ export async function listMedicines({
   const pipeline = buildMedicinePipeline({
     search,
     categoryId,
-    sort,
     minPrice,
     maxPrice,
     featured,

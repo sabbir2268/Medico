@@ -1,7 +1,6 @@
 /**
  * Shared client-side API contract. These paths and codes mirror the server
  * implementation in server/src/routes and server/src/constants/errorCodes.js.
- * The full contract is documented in docs/API_CONTRACT.md at the repo root.
  */
 export const API_ROUTES = Object.freeze({
   health: "/health",

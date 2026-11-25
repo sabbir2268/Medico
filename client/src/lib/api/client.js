@@ -99,5 +99,3 @@ apiClient.interceptors.response.use(
     return Promise.reject(normalizeApiError(error));
   },
 );
-
-export default apiClient;

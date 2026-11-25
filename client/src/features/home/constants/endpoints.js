@@ -5,8 +5,6 @@ import { API_ROUTES } from "@/constants/api";
  * base URL, so every path here stays relative to it.
  */
 export const HOME_ENDPOINTS = Object.freeze({
-  overview: API_ROUTES.home,
-  advertisements: API_ROUTES.advertisements.active,
   advertised: API_ROUTES.medicines.advertised,
   categories: API_ROUTES.categories.list,
   discounted: API_ROUTES.medicines.discounted,

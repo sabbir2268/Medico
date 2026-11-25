@@ -1,6 +1,6 @@
 /**
  * Machine-readable error codes. Keep in sync with the client copy at
- * client/src/constants/api.js (documented in docs/API_CONTRACT.md).
+ * client/src/constants/api.js.
  */
 export const ERROR_CODES = Object.freeze({
   VALIDATION_ERROR: "VALIDATION_ERROR",

@@ -128,5 +128,3 @@ export async function uploadImage(file, sellerId = 'shared') {
   });
 }
 
-/** Backwards-compatible alias used by earlier callers. */
-export const uploadMedicineImage = uploadImage;

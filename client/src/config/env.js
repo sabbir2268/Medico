@@ -96,4 +96,3 @@ if (configuredFirebaseKeys > 0 && configuredFirebaseKeys < firebaseKeys.length) 
 }
 
 export const isFirebaseConfigured = configuredFirebaseKeys === firebaseKeys.length;
-export const isStripeConfigured = Boolean(env.VITE_STRIPE_PUBLISHABLE_KEY);

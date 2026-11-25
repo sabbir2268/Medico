@@ -33,8 +33,3 @@ export function sendPaginated(res, { items = [], pagination, message = 'Success'
   });
 }
 
-export const ApiResponse = Object.freeze({
-  success: sendSuccess,
-  error: sendError,
-  paginated: sendPaginated,
-});

@@ -47,11 +47,3 @@ export function writeLocalProfile(uid, profile) {
   return next;
 }
 
-export function clearLocalProfile(uid) {
-  if (!uid) return;
-
-  const profiles = readAllProfiles();
-
-  delete profiles[uid];
-  writeAllProfiles(profiles);
-}

@@ -40,9 +40,4 @@ medicineSchema.index({ price: 1 });
 medicineSchema.index({ discountPercent: -1 });
 medicineSchema.index({ seller: 1, status: 1 });
 
-export const MEDICINE_PUBLIC_FILTER = {
-  status: 'active',
-  stock: { $gt: 0 },
-};
-
 export const Medicine = model('Medicine', medicineSchema);
