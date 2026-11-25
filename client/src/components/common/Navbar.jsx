@@ -190,6 +190,7 @@ function Navbar() {
             )}
           </div>
 
+          {isAuthenticated && (
           <div className="relative" ref={cartRef}>
             <button
               type="button"
@@ -263,6 +264,7 @@ function Navbar() {
               </DropdownPanel>
             )}
           </div>
+          )}
 
           <div className="relative hidden sm:block" ref={accountRef}>
             {isAuthenticated ? (
@@ -403,13 +405,15 @@ function Navbar() {
             >
               Categories
             </NavLink>
-            <NavLink
-              to={PATHS.CART}
-              className={navLinkClass}
-              onClick={() => setMobileOpen(false)}
-            >
-              Cart ({displayCartCount})
-            </NavLink>
+            {isAuthenticated && (
+              <NavLink
+                to={PATHS.CART}
+                className={navLinkClass}
+                onClick={() => setMobileOpen(false)}
+              >
+                Cart ({displayCartCount})
+              </NavLink>
+            )}
           </div>
 
           <div className="mt-4 border-t border-line pt-4">

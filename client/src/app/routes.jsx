@@ -60,7 +60,12 @@ export const routes = [
           { path: "about", element: <About /> },
           { path: PATHS.SHOP, element: <Shop /> },
           { path: PATHS.DEALS, element: <Deals /> },
-          { path: PATHS.CART, element: <Cart /> },
+          {
+            // Browsing is public; the cart itself is sign-in only.
+            path: PATHS.CART,
+            element: <PrivateRoute />,
+            children: [{ index: true, element: <Cart /> }],
+          },
           { path: PATHS.CATEGORIES, element: <Categories /> },
           { path: PATHS.CATEGORY_MEDICINES, element: <CategoryMedicines /> },
           { path: "*", element: <NotFound /> },

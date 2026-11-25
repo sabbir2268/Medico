@@ -92,6 +92,12 @@ describe("route configuration", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Login" })).toBeInTheDocument();
   });
 
+  it("redirects unauthenticated cart visits to login", () => {
+    renderRoute("/cart");
+
+    expect(screen.getByRole("heading", { level: 1, name: "Login" })).toBeInTheDocument();
+  });
+
   it("renders the not-found page inside the public layout", () => {
     renderRoute("/missing-page");
 

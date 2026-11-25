@@ -4,7 +4,7 @@ import { Visual } from "@/components/shared/Visual";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/format";
 import { notify } from "@/lib/notify";
-import { useCart } from "@/features/cart/hooks/useCart";
+import { useAddToCart } from "@/features/cart/hooks/useAddToCart";
 
 function Rating({ rating, reviewCount }) {
   return (
@@ -30,7 +30,7 @@ function Rating({ rating, reviewCount }) {
 }
 
 export function MedicineCard({ medicine, className, onDetails }) {
-  const { add } = useCart();
+  const add = useAddToCart();
   const {
     name,
     genericName,
@@ -154,6 +154,7 @@ export function MedicineCard({ medicine, className, onDetails }) {
               aria-label={`Add ${name} to cart`}
               onClick={async () => {
                 const count = await add(medicine);
+                if (count === null) return;
 
                 notify.success(
                   `${name} added to your cart. ${count} item${count === 1 ? "" : "s"} total.`,
