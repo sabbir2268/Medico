@@ -33,9 +33,10 @@ function navLinkClass({ isActive }) {
   );
 }
 
-function DropdownPanel({ children, className }) {
+function DropdownPanel({ children, className, ...props }) {
   return (
     <div
+      {...props}
       className={cn(
         "absolute top-full right-0 z-50 mt-2 w-56 overflow-hidden rounded-card border border-line bg-surface p-1.5 shadow-lg",
         className,
@@ -46,12 +47,14 @@ function DropdownPanel({ children, className }) {
   );
 }
 
-function MenuItem({ icon: Icon, children, onClick }) {
+function MenuItem({ icon: Icon, children, onClick, disabled = false }) {
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-control px-3 py-2.5 text-left text-sm font-medium text-foreground transition hover:bg-hover"
+      disabled={disabled}
+      className="flex w-full items-center gap-2.5 rounded-control px-3 py-2.5 text-left text-sm font-medium text-foreground transition hover:bg-hover disabled:pointer-events-none disabled:opacity-50"
     >
       {Icon && <Icon className="h-4 w-4 text-muted" aria-hidden="true" />}
       {children}
@@ -59,9 +62,39 @@ function MenuItem({ icon: Icon, children, onClick }) {
   );
 }
 
+function ProfileAvatar({ user, className }) {
+  const [failedUrl, setFailedUrl] = useState(null);
+  const photoURL = user?.photoURL;
+
+  if (photoURL && photoURL !== failedUrl) {
+    return (
+      <img
+        src={photoURL}
+        alt={user.name ? `${user.name}'s profile picture` : "Profile picture"}
+        loading="lazy"
+        onError={() => setFailedUrl(photoURL)}
+        className={cn("h-8 w-8 rounded-full border border-line object-cover", className)}
+      />
+    );
+  }
+
+  return (
+    <span
+      role="img"
+      aria-label="Default profile picture"
+      className={cn(
+        "flex h-8 w-8 items-center justify-center rounded-full bg-primary-soft text-primary",
+        className,
+      )}
+    >
+      <UserRound className="h-4 w-4" aria-hidden="true" />
+    </span>
+  );
+}
+
 function Navbar() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, submitting } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -103,13 +136,6 @@ function Navbar() {
     setLanguageOpen(false);
     setMobileOpen(false);
   }
-
-  const initials = (user?.name ?? user?.email ?? "GU")
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
@@ -244,9 +270,7 @@ function Navbar() {
                   aria-expanded={accountOpen}
                   aria-label="Open profile menu"
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-primary">
-                    {initials}
-                  </span>
+                  <ProfileAvatar user={user} />
                   <ChevronDown className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
                 </button>
                 {accountOpen && (
@@ -258,30 +282,34 @@ function Navbar() {
                       <p className="truncate text-xs text-muted">{user.email}</p>
                     </div>
                     <div className="pt-1.5">
-                      <MenuItem icon={UserRound} onClick={() => navigate(PATHS.PROFILE)}>
-                        Profile
-                      </MenuItem>
                       <MenuItem
-                        icon={ClipboardList}
-                        onClick={() => navigate(PATHS.DASHBOARD)}
+                        icon={UserRound}
+                        onClick={() => {
+                          setAccountOpen(false);
+                          navigate(PATHS.PROFILE);
+                        }}
                       >
-                        My orders
+                        Update Profile
                       </MenuItem>
                       <MenuItem
                         icon={LayoutDashboard}
-                        onClick={() => navigate(PATHS.DASHBOARD)}
+                        onClick={() => {
+                          setAccountOpen(false);
+                          navigate(PATHS.DASHBOARD);
+                        }}
                       >
                         Dashboard
                       </MenuItem>
                       <MenuItem
                         icon={LogOut}
+                        disabled={submitting}
                         onClick={async () => {
                           await logout();
                           setAccountOpen(false);
                           navigate(PATHS.HOME, { replace: true });
                         }}
                       >
-                        Log out
+                        {submitting ? "Signing out..." : "Logout"}
                       </MenuItem>
                     </div>
                   </DropdownPanel>
@@ -291,7 +319,7 @@ function Navbar() {
               <>
                 <div className="flex items-center">
                   <Button size="sm" onClick={() => navigate(PATHS.LOGIN)}>
-                    Sign in
+                    Join Us
                   </Button>
                   <button
                     type="button"
@@ -306,15 +334,30 @@ function Navbar() {
                 </div>
                 {accountOpen && (
                   <DropdownPanel role="menu">
-                    <MenuItem icon={UserRound} onClick={() => navigate(PATHS.LOGIN)}>
+                    <MenuItem
+                      icon={UserRound}
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate(PATHS.LOGIN);
+                      }}
+                    >
                       Log in
                     </MenuItem>
-                    <MenuItem icon={UserRound} onClick={() => navigate(PATHS.REGISTER)}>
+                    <MenuItem
+                      icon={UserRound}
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate(PATHS.REGISTER);
+                      }}
+                    >
                       Create account
                     </MenuItem>
                     <MenuItem
                       icon={ClipboardList}
-                      onClick={() => navigate(PATHS.REGISTER)}
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate(PATHS.REGISTER);
+                      }}
                     >
                       Become a vendor
                     </MenuItem>
@@ -390,28 +433,78 @@ function Navbar() {
             </div>
           </div>
 
-          <div className="mt-4 flex gap-2 border-t border-line pt-4 sm:hidden">
+          <div className="mt-4 border-t border-line pt-4 sm:hidden">
             {isAuthenticated ? (
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => navigate(PATHS.PROFILE)}
-              >
-                My account
-              </Button>
-            ) : (
               <>
-                <Button className="flex-1" onClick={() => navigate(PATHS.LOGIN)}>
-                  Sign in
+                <div className="flex items-center gap-3 px-3 pb-3">
+                  <ProfileAvatar user={user} className="h-9 w-9" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {user.name ?? "My account"}
+                    </p>
+                    <p className="truncate text-xs text-muted">{user.email}</p>
+                  </div>
+                </div>
+                <div className="grid gap-1 px-3">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      navigate(PATHS.PROFILE);
+                    }}
+                  >
+                    <UserRound className="h-4 w-4" aria-hidden="true" />
+                    Update Profile
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      navigate(PATHS.DASHBOARD);
+                    }}
+                  >
+                    <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+                    Dashboard
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-destructive hover:text-destructive"
+                    disabled={submitting}
+                    onClick={async () => {
+                      await logout();
+                      setMobileOpen(false);
+                      navigate(PATHS.HOME, { replace: true });
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" aria-hidden="true" />
+                    {submitting ? "Signing out..." : "Logout"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="grid gap-2">
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    navigate(PATHS.LOGIN);
+                  }}
+                >
+                  Join Us
                 </Button>
                 <Button
-                  className="flex-1"
                   variant="outline"
-                  onClick={() => navigate(PATHS.REGISTER)}
+                  className="w-full"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    navigate(PATHS.REGISTER);
+                  }}
                 >
                   Register
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </div>
