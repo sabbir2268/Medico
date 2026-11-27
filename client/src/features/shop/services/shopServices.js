@@ -119,11 +119,15 @@ export async function getMedicines({
   sort = "",
   page = 1,
   limit = DEFAULT_PAGE_SIZE,
+  minPrice,
+  maxPrice,
 } = {}) {
   const requestParams = {
     ...(search ? { search } : {}),
     ...(category ? { category } : {}),
     ...(sort ? { sort: sortToApiValue(sort) } : {}),
+    ...(minPrice !== undefined && minPrice !== "" ? { minPrice } : {}),
+    ...(maxPrice !== undefined && maxPrice !== "" ? { maxPrice } : {}),
     page,
     limit,
   };

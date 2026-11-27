@@ -1,0 +1,18 @@
+# Secrets: never commit environment files. Only *.example files are tracked.
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor files
+.DS_Store
+.idea/
+.vscode/

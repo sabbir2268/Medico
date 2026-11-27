@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import app from "./src/app.js";
-import { env } from "./src/config/env.js";
+import { env, isProduction } from "./src/config/env.js";
 import {
   connectDatabase,
   disconnectDatabase,
@@ -15,7 +15,16 @@ async function startServer() {
   try {
     await connectDatabase();
   } catch (error) {
-    logger.warn(`MongoDB connection failed: ${error.message}`);
+    logger.error(`MongoDB connection failed: ${error.message}`);
+    if (isProduction) {
+      // A live instance with no database is worse than a failed deploy: Render
+      // will restart/report the failure and /api/health can never go green.
+      logger.error(
+        "Refusing to start in production without MongoDB. Check MONGODB_URI, Atlas credentials and network access.",
+      );
+      process.exitCode = 1;
+      return;
+    }
     logger.warn(
       "Starting in degraded mode; /api/health will report the database as unavailable.",
     );

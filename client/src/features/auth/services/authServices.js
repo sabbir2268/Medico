@@ -16,9 +16,20 @@ import {
 } from "firebase/auth";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { app, auth } from "@/config/firebase";
-import { normalizeAssignableRole } from "@/constants/roles";
+import { apiClient } from "@/lib/api";
+import { API_ROUTES } from "@/constants/api";
+import { env } from "@/config/env";
+import { normalizeAssignableRole, normalizeServerRole } from "@/constants/roles";
+import { applyAdminEmail } from "../utils/adminEmail";
 import { PATHS } from "@/utils/paths";
 import { readLocalProfile, writeLocalProfile } from "../utils/localProfile";
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  hasBackendSession,
+  storeTokens,
+} from "../utils/tokenStore";
 
 const AUTH_ERROR_MESSAGES = {
   "auth/invalid-credential": "Incorrect email or password.",
@@ -50,6 +61,10 @@ const AUTH_ERROR_MESSAGES = {
     "This domain is not authorized for Firebase sign-in. Add it under Authentication → Settings → Authorized domains.",
 };
 
+export function isFirebaseEnabled() {
+  return Boolean(auth);
+}
+
 function requireAuth() {
   if (!auth) {
     throw new Error(
@@ -70,6 +85,11 @@ function requireCurrentUser() {
   return current;
 }
 
+/** Emails are stored lowercased on the server, so normalize them everywhere. */
+function normalizeEmail(email) {
+  return String(email ?? "").trim().toLowerCase();
+}
+
 function saveProfile(uid, updates) {
   const current = readLocalProfile(uid) ?? {};
 
@@ -80,24 +100,44 @@ function saveProfile(uid, updates) {
  * Merge the Firebase identity with the app-level profile kept on this device.
  * Firebase always wins for identity fields; the profile supplies role/name.
  */
-export function toAppUser(firebaseUser, localProfile = null) {
+export function toAppUser(firebaseUser, localProfile = null, serverUser = null) {
   if (!firebaseUser) return null;
 
-  const profile = localProfile ?? {};
+  const profile = serverUser ? { ...localProfile, ...serverUser } : localProfile ?? {};
   const name = profile.name ?? profile.username ?? firebaseUser.displayName ?? "Member";
   const email = firebaseUser.email ?? profile.email ?? "";
 
-  return {
+  return applyAdminEmail({
     uid: firebaseUser.uid,
-    id: firebaseUser.uid,
+    id: firebaseUser.id,
     name,
     username: profile.username ?? name,
     email,
     photoURL: profile.photoURL || firebaseUser.photoURL || "",
     emailVerified: Boolean(firebaseUser.emailVerified),
     provider: firebaseUser.providerData?.[0]?.providerId ?? "password",
-    role: normalizeAssignableRole(profile.role),
-  };
+    role: serverUser ? normalizeServerRole(serverUser.role) : normalizeAssignableRole(profile.role),
+  });
+}
+
+/** Maps a backend user record into the shape consumed by the UI. */
+export function toBackendAppUser(serverUser, tokens = null) {
+  if (!serverUser) return null;
+
+  return applyAdminEmail({
+    uid: serverUser.firebaseUid ?? serverUser.id,
+    id: serverUser.id,
+    name: serverUser.username || serverUser.displayName || "Member",
+    username: serverUser.username || serverUser.displayName || "Member",
+    email: serverUser.email ?? "",
+    photoURL: serverUser.photoURL ?? "",
+    phone: serverUser.phone ?? "",
+    address: serverUser.address ?? {},
+    emailVerified: true,
+    provider: serverUser.provider ?? "password",
+    role: normalizeServerRole(serverUser.role),
+    tokens,
+  });
 }
 
 /**
@@ -131,6 +171,53 @@ export function toAuthError(error) {
 }
 
 export function observeAuth(callback) {
+  // Backend mode owns the session via JWTs. Firebase's onAuthStateChanged must
+  // not clear those tokens on reload (it fires with `null` before anything
+  // else), otherwise every protected admin page redirects back to /login.
+  if (env.VITE_AUTH_MODE === "backend") {
+    let active = true;
+
+    if (hasBackendSession()) {
+      fetchCurrentUser()
+        .then((user) => {
+          if (active) callback(user);
+        })
+        .catch(() => {
+          clearTokens();
+          if (active) callback(null);
+        });
+    } else {
+      callback(null);
+    }
+
+    // Social sign-in still happens through Firebase. Listen for it so the
+    // session is not lost on reload and exchange it for our own JWT when the
+    // API is available. Never let a null Firebase state clear backend tokens.
+    let unsubscribe = () => {};
+    if (auth) {
+      unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        if (!active || !firebaseUser) return;
+
+        exchangeFirebaseSession()
+          .then((serverUser) => {
+            if (active) {
+              callback(
+                serverUser ?? toAppUser(firebaseUser, readLocalProfile(firebaseUser.uid)),
+              );
+            }
+          })
+          .catch(() => {
+            if (active) callback(toAppUser(firebaseUser, readLocalProfile(firebaseUser.uid)));
+          });
+      });
+    }
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }
+
   if (!auth) {
     callback(null);
     return () => {};
@@ -139,9 +226,22 @@ export function observeAuth(callback) {
   return onAuthStateChanged(
     auth,
     (firebaseUser) => {
-      callback(
-        firebaseUser ? toAppUser(firebaseUser, readLocalProfile(firebaseUser.uid)) : null,
-      );
+      if (!firebaseUser) {
+        clearTokens();
+        callback(null);
+        return;
+      }
+
+      const localProfile = readLocalProfile(firebaseUser.uid);
+      const localUser = () => toAppUser(firebaseUser, localProfile);
+
+      // Prefer the backend record (server-owned role) when the API is available.
+      // Failures are cached in exchangeFirebaseSession, so this cannot spam the API.
+      exchangeFirebaseSession()
+        .then((serverUser) =>
+          callback(serverUser ? toAppUser(firebaseUser, localProfile, serverUser) : localUser()),
+        )
+        .catch(() => callback(localUser()));
     },
     () => callback(null),
   );
@@ -155,11 +255,8 @@ export async function registerWithEmail({
   role,
 }) {
   const safeRole = normalizeAssignableRole(role);
-  const credential = await createUserWithEmailAndPassword(
-    requireAuth(),
-    email.trim(),
-    password,
-  );
+  const safeEmail = normalizeEmail(email);
+  const credential = await createUserWithEmailAndPassword(requireAuth(), safeEmail, password);
 
   try {
     await updateProfile(credential.user, {
@@ -173,7 +270,7 @@ export async function registerWithEmail({
   const profile = saveProfile(credential.user.uid, {
     name: username,
     username,
-    email: credential.user.email ?? email.trim(),
+    email: normalizeEmail(credential.user.email ?? safeEmail),
     photoURL,
     role: safeRole,
   });
@@ -184,7 +281,7 @@ export async function registerWithEmail({
 export async function signInWithEmail({ email, password }) {
   const credential = await signInWithEmailAndPassword(
     requireAuth(),
-    email.trim(),
+    normalizeEmail(email),
     password,
   );
 
@@ -202,10 +299,18 @@ export async function signInWithSocial(providerName) {
   }
 
   const credential = await signInWithPopup(requireAuth(), provider);
+  const firebaseUser = toAppUser(credential.user, readLocalProfile(credential.user.uid));
 
-  return {
-    user: toAppUser(credential.user, readLocalProfile(credential.user.uid)),
-  };
+  if (env.VITE_AUTH_MODE === "backend") {
+    try {
+      const serverUser = await exchangeFirebaseSession();
+      if (serverUser) return { user: serverUser };
+    } catch {
+      /* Fall back to the Firebase-only session when the API cannot exchange. */
+    }
+  }
+
+  return { user: firebaseUser };
 }
 
 export async function signOutUser() {
@@ -267,10 +372,20 @@ export async function resetUserPassword(email) {
       : undefined;
 
   try {
-    await sendPasswordResetEmail(requireAuth(), email.trim(), actionCodeSettings);
+    await sendPasswordResetEmail(requireAuth(), normalizeEmail(email), actionCodeSettings);
   } catch (error) {
     // Do not reveal whether an account exists for the address.
-    if (error?.code === "auth/user-not-found") return;
+    if (error?.code === "auth/user-not-found") {
+      // Backend accounts have no Firebase identity, so a silent success would
+      // be misleading. Surface a clear message instead.
+      if (env.VITE_AUTH_MODE === "backend") {
+        throw new Error(
+          "Password reset is not available for this account yet. Please contact Medico support.",
+          { cause: error },
+        );
+      }
+      return;
+    }
 
     throw error;
   }
@@ -307,4 +422,116 @@ export async function getFreshToken(forceRefresh = false) {
   const current = auth?.currentUser;
 
   return current ? getIdToken(current, forceRefresh) : null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Backend-backed authentication (JWT)                                         */
+/* -------------------------------------------------------------------------- */
+
+function unwrapSession(data) {
+  return data && typeof data === "object" && "data" in data ? data.data : data;
+}
+
+export async function registerWithBackend(values) {
+  const { data } = await apiClient.post(API_ROUTES.auth.register, {
+    username: values.username,
+    email: normalizeEmail(values.email),
+    password: values.password,
+    photoURL: values.photoURL || "",
+    role: values.role,
+  });
+  const session = unwrapSession(data);
+
+  storeTokens(session);
+  return { user: toBackendAppUser(session.user, session), session };
+}
+
+export async function loginWithBackend(values) {
+  const { data } = await apiClient.post(API_ROUTES.auth.login, {
+    email: normalizeEmail(values.email),
+    password: values.password,
+  });
+  const session = unwrapSession(data);
+
+  storeTokens(session);
+  return { user: toBackendAppUser(session.user, session), session };
+}
+
+/** Exchange a verified Firebase ID token for our own JWT. */
+let backendExchangeUnavailable = false;
+
+export async function exchangeFirebaseSession(idToken = null) {
+  if (backendExchangeUnavailable) return null;
+
+  const token = idToken ?? (await getFreshToken());
+
+  if (!token) return null;
+
+  try {
+    const { data } = await apiClient.post(API_ROUTES.auth.firebase, { idToken: token });
+    const session = unwrapSession(data);
+
+    storeTokens(session);
+    return session.user ? toBackendAppUser(session.user, session) : null;
+  } catch (error) {
+    // Firebase Admin credentials are missing: stop retrying for this page load.
+    if (error?.status === 503 || error?.status === 501) backendExchangeUnavailable = true;
+    throw error;
+  }
+}
+
+export async function refreshBackendSession() {
+  const refreshToken = getRefreshToken();
+
+  if (!refreshToken) return null;
+
+  const { data } = await apiClient.post(API_ROUTES.auth.refresh, { refreshToken });
+  const session = unwrapSession(data);
+
+  storeTokens(session);
+  return session.accessToken ?? null;
+}
+
+export async function fetchCurrentUser() {
+  const { data } = await apiClient.get(API_ROUTES.auth.me);
+  const body = unwrapSession(data);
+
+  return toBackendAppUser(body.user);
+}
+
+export async function logoutBackend() {
+  try {
+    if (hasBackendSession()) await apiClient.post(API_ROUTES.auth.logout);
+  } finally {
+    clearTokens();
+  }
+}
+
+export async function patchBackendProfile(values) {
+  const {
+    addressLine1 = "",
+    addressLine2 = "",
+    city = "",
+    postalCode = "",
+    country = "Bangladesh",
+    ...rest
+  } = values;
+
+  const { data } = await apiClient.patch(API_ROUTES.users.profile, {
+    ...rest,
+    address: { addressLine1, addressLine2, city, postalCode, country },
+  });
+  const body = unwrapSession(data);
+
+  return { user: toBackendAppUser(body.user) };
+}
+
+/** Token accessor used by the centralized Axios client. */
+export function getApiAccessToken() {
+  return getAccessToken();
+}
+
+export async function refreshApiAccessToken() {
+  if (getRefreshToken()) return refreshBackendSession();
+  return getFreshToken(true);
 }

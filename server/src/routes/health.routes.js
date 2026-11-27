@@ -2,6 +2,10 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import { env } from '../config/env.js';
 import { getDatabaseStatus } from '../config/database.js';
+import { isFirebaseAdminConfigured } from '../config/firebaseAdmin.js';
+import { isStripeConfigured } from '../config/stripe.js';
+import { isCloudinaryConfigured } from '../config/cloudinary.js';
+import { isImgbbConfigured } from '../config/imgbb.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
@@ -31,7 +35,16 @@ router.get(
         uptimeSeconds: Math.floor(process.uptime()),
         nodeVersion: process.version,
       },
-      database,
+      // Keep infrastructure details (Atlas host / database name) private.
+      database: {
+        status: database.status,
+        readyState: database.readyState,
+      },
+      features: {
+        auth: { firebaseAdmin: isFirebaseAdminConfigured },
+        payments: { stripe: isStripeConfigured },
+        storage: { imgbb: isImgbbConfigured, cloudinary: isCloudinaryConfigured },
+      },
     };
 
     if (!isDatabaseHealthy) {

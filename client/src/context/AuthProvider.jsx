@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { setAccessTokenGetter, setTokenRefresher } from "@/lib/api";
 import { notify } from "@/lib/notify";
-import { ROLES } from "@/constants/roles";
+import { env } from "@/config/env";
 import { AuthContext } from "./authContext.jsx";
 import * as authService from "@/features/auth/services/authServices";
+import { clearTokens, hasBackendSession } from "@/features/auth/utils/tokenStore";
+import { isConfiguredAdminEmail, normalizeUserForApp } from "@/features/auth/utils/adminEmail";
+import { mergeGuestCart } from "@/features/cart/services/cartServices";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -16,8 +19,8 @@ export const AuthProvider = ({ children }) => {
    * future protected API routes can verify it with the Admin SDK.
    */
   useEffect(() => {
-    setAccessTokenGetter(() => authService.getFreshToken());
-    setTokenRefresher(() => authService.getFreshToken(true));
+    setAccessTokenGetter(() => authService.getApiAccessToken() ?? authService.getFreshToken());
+    setTokenRefresher(() => authService.refreshApiAccessToken());
 
     return () => {
       setAccessTokenGetter(null);
@@ -31,7 +34,7 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = authService.observeAuth((nextUser) => {
       if (!active) return;
 
-      setUser(nextUser);
+      setUser(normalizeUserForApp(nextUser));
       setLoading(false);
     });
 
@@ -41,14 +44,23 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const runAction = useCallback(async (action, successMessage) => {
+  // Merge any locally stored guest cart once the user is signed in.
+  useEffect(() => {
+    if (!loading && user && hasBackendSession()) {
+      mergeGuestCart().catch(() => {
+        /* A missing backend session simply leaves the guest cart in place. */
+      });
+    }
+  }, [loading, user]);
+
+  const runAction = useCallback(async (action, successMessage, { updateUser = true } = {}) => {
     setSubmitting(true);
     setError(null);
 
     try {
       const result = await action();
 
-      if (result?.user) setUser(result.user);
+      if (updateUser && result?.user) setUser(normalizeUserForApp(result.user));
       if (successMessage) notify.success(successMessage);
 
       return result;
@@ -66,16 +78,42 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(
     (values) =>
-      runAction(() => authService.signInWithEmail(values), "Welcome back to Medico!"),
+      runAction(
+        () =>
+          env.VITE_AUTH_MODE === "backend"
+            ? authService.loginWithBackend(values)
+            : authService.signInWithEmail(values),
+        "Welcome back to Medico!",
+      ),
     [runAction],
   );
 
   const register = useCallback(
-    (values) =>
-      runAction(
-        () => authService.registerWithEmail(values),
-        "Your account is ready. Welcome to Medico!",
-      ),
+    async (values) => {
+      // Registration creates the account but must NOT start a signed-in
+      // session: the user is sent to /login to authenticate explicitly, and
+      // PublicRoute would otherwise bounce them straight back to /dashboard.
+      const result = await runAction(
+        () =>
+          env.VITE_AUTH_MODE === "backend"
+            ? authService.registerWithBackend(values)
+            : authService.registerWithEmail(values),
+        "Account created. Please log in to continue.",
+        { updateUser: false },
+      );
+
+      if (result) {
+        clearTokens();
+
+        if (authService.isFirebaseEnabled()) {
+          await authService.signOutUser().catch(() => {
+            /* A missing Firebase session is fine in backend mode. */
+          });
+        }
+      }
+
+      return result;
+    },
     [runAction],
   );
 
@@ -95,7 +133,10 @@ export const AuthProvider = ({ children }) => {
     setSubmitting(true);
 
     try {
-      await authService.signOutUser();
+      await authService.logoutBackend();
+
+      if (authService.isFirebaseEnabled()) await authService.signOutUser();
+
       notify.success("You have been signed out.");
     } catch (caught) {
       notify.error(authService.toAuthError(caught));
@@ -108,7 +149,10 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = useCallback(
     (values) =>
       runAction(
-        () => authService.saveUserProfile(values),
+        () =>
+          hasBackendSession()
+            ? authService.patchBackendProfile(values)
+            : authService.saveUserProfile(values),
         "Profile updated successfully.",
       ),
     [runAction],
@@ -152,7 +196,8 @@ export const AuthProvider = ({ children }) => {
       error,
       isAuthenticated: Boolean(user),
       role: user?.role ?? null,
-      isAdmin: user?.role === ROLES.ADMIN,
+      // The allowlisted email is the single source of truth for admin access.
+      isAdmin: isConfiguredAdminEmail(user?.email),
       login,
       register,
       loginWithGoogle,

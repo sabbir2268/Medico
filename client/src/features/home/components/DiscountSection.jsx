@@ -6,17 +6,27 @@ import { AsyncContent, SkeletonGrid } from "@/components/shared/AsyncContent";
 import { MedicineCard } from "@/components/shared/MedicineCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { PATHS } from "@/utils/paths";
-import { useDiscountedMedicines } from "../hooks/useHomeData";
+import { useDiscountedMedicines, useFeaturedMedicines } from "../hooks/useHomeData";
 
 export function DiscountSection() {
   const query = useDiscountedMedicines();
+  const featuredQuery = useFeaturedMedicines();
+  const featuredIds = new Set(
+    featuredQuery.items.map((medicine) => medicine.id ?? medicine._id),
+  );
+  const items = query.items.filter((medicine) => !featuredIds.has(medicine.id ?? medicine._id));
+  const visibleQuery = {
+    ...query,
+    items,
+    isEmpty: query.isEmpty || (!query.isPending && !query.isError && items.length === 0),
+  };
 
   const heading = (
     <SectionHeading
       eyebrow="Limited-time offers"
       title="Discounted medicines, same trusted quality"
       description="Real savings on the medicines and wellness essentials you already rely on. Offers rotate weekly across all verified vendors."
-      isFallback={query.isFallback}
+      isFallback={visibleQuery.isFallback}
       action={
         <div className="flex items-center gap-2">
           <Link
@@ -52,7 +62,7 @@ export function DiscountSection() {
     >
       {heading}
       <AsyncContent
-        query={query}
+        query={visibleQuery}
         skeleton={<SkeletonGrid count={4} />}
         className="px-0.5 pb-2"
       >
@@ -73,7 +83,7 @@ export function DiscountSection() {
             1024: { slidesPerView: 4, spaceBetween: 20 },
           }}
         >
-          {query.items.map((medicine) => (
+          {visibleQuery.items.map((medicine) => (
             <SwiperSlide key={medicine.id} className="h-auto">
               <MedicineCard medicine={medicine} />
             </SwiperSlide>

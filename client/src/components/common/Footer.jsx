@@ -3,11 +3,14 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { siteConfig } from "@/config/site";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { notify } from "@/lib/notify";
 import { PATHS } from "@/utils/paths";
 
 const SHOP_LINKS = [
   { label: "All medicines", to: PATHS.SHOP },
+  { label: "Today's deals", to: PATHS.DEALS },
+  { label: "Your cart", to: PATHS.CART },
   { label: "Prescription medicines", to: PATHS.CATEGORIES },
   { label: "Over-the-counter", to: PATHS.CATEGORIES },
   { label: "Vitamins & supplements", to: PATHS.CATEGORIES },
@@ -41,6 +44,11 @@ function FooterLink({ label, to, target }) {
 
 function Footer() {
   const [email, setEmail] = useState("");
+  const { isAuthenticated } = useAuth();
+  // The cart belongs to signed-in users; guests only see public shop links.
+  const shopLinks = SHOP_LINKS.filter(
+    (link) => isAuthenticated || link.to !== PATHS.CART,
+  );
 
   function handleSubscribe(event) {
     event.preventDefault();
@@ -122,7 +130,7 @@ function Footer() {
           <div>
             <h3 className="font-heading text-sm font-bold text-foreground">Shop</h3>
             <ul className="mt-4 space-y-3">
-              {SHOP_LINKS.map((link) => (
+              {shopLinks.map((link) => (
                 <li key={link.label}>
                   <FooterLink {...link} />
                 </li>

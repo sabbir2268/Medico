@@ -1,0 +1,15 @@
+export const adminKeys = {
+  all: ["admin"],
+  dashboard: () => [...adminKeys.all, "dashboard"],
+  analytics: (params) => [...adminKeys.all, "analytics", params ?? {}],
+  users: (params) => [...adminKeys.all, "users", params ?? {}],
+  sellers: (params) => [...adminKeys.all, "sellers", params ?? {}],
+  categories: (params) => [...adminKeys.all, "categories", params ?? {}],
+  medicines: (params) => [...adminKeys.all, "medicines", params ?? {}],
+  orders: (params) => [...adminKeys.all, "orders", params ?? {}],
+  payments: (params) => [...adminKeys.all, "payments", params ?? {}],
+  report: (params) => [...adminKeys.all, "report", params ?? {}],
+  advertisements: (params) => [...adminKeys.all, "advertisements", params ?? {}],
+  healthTips: (params) => [...adminKeys.all, "health-tips", params ?? {}],
+  auditLogs: (params) => [...adminKeys.all, "audit-logs", params ?? {}],
+};

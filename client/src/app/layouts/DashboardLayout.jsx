@@ -1,5 +1,21 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, Pill, Store, UserRound } from "lucide-react";
+import {
+  CreditCard,
+  FileBarChart,
+  HeartPulse,
+  LayoutDashboard,
+  Megaphone,
+  PackageCheck,
+  ScrollText,
+  Tags,
+  UsersRound,
+  LockKeyhole,
+  LogOut,
+  Package,
+  Pill,
+  Store,
+  UserRound,
+} from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { ROLES } from "@/constants/roles";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -18,6 +34,35 @@ const dashboardNav = [
     to: PATHS.PROFILE,
     icon: UserRound,
   },
+  {
+    label: "Orders",
+    to: PATHS.ORDERS,
+    icon: Package,
+  },
+  {
+    label: "Payments",
+    to: PATHS.PAYMENTS,
+    icon: CreditCard,
+  },
+  {
+    label: "Security",
+    to: PATHS.SECURITY,
+    icon: LockKeyhole,
+  },
+];
+
+const adminNav = [
+  { label: "Overview", to: PATHS.ADMIN, icon: LayoutDashboard, end: true },
+  { label: "Users", to: PATHS.ADMIN_USERS, icon: UsersRound },
+  { label: "Sellers", to: PATHS.ADMIN_SELLERS, icon: Store },
+  { label: "Categories", to: PATHS.ADMIN_CATEGORIES, icon: Tags },
+  { label: "Medicines", to: PATHS.ADMIN_MEDICINES, icon: Pill },
+  { label: "Orders", to: PATHS.ADMIN_ORDERS, icon: PackageCheck },
+  { label: "Payments", to: PATHS.ADMIN_PAYMENTS, icon: CreditCard },
+  { label: "Reports", to: PATHS.ADMIN_REPORTS, icon: FileBarChart },
+  { label: "Advertisements", to: PATHS.ADMIN_ADS, icon: Megaphone },
+  { label: "Health tips", to: PATHS.ADMIN_TIPS, icon: HeartPulse },
+  { label: "Audit log", to: PATHS.ADMIN_AUDIT, icon: ScrollText },
 ];
 
 function navLinkClass({ isActive }) {
@@ -42,9 +87,11 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const { user, logout, submitting } = useAuth();
   const navItems =
-    user?.role === ROLES.SELLER
-      ? [...dashboardNav, { label: "Seller tools", to: PATHS.SELLER, icon: Store }]
-      : dashboardNav;
+    user?.role === ROLES.ADMIN
+      ? adminNav
+      : user?.role === ROLES.SELLER
+        ? [...dashboardNav, { label: "Seller tools", to: PATHS.SELLER, icon: Store }]
+        : dashboardNav;
 
   const onLogout = async () => {
     await logout();

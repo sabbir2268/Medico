@@ -1,8 +1,9 @@
+import { API_ROUTES } from "@/constants/api";
+
 /** Storefront endpoints used by the shop and category medicine pages. */
-export const SHOP_ENDPOINTS = {
-  medicines: "/medicines",
-  medicine: (id) => `/medicines/${encodeURIComponent(id)}`,
-};
+export const SHOP_ENDPOINTS = Object.freeze({
+  medicines: API_ROUTES.medicines.list,
+});
 
 /** URL query parameters. Keep them in sync with useCatalogParams. */
 export const CATALOG_PARAMS = {

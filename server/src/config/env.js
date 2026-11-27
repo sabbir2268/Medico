@@ -31,10 +31,62 @@ function toInteger(name, fallback, { min = 0 } = {}) {
   return value;
 }
 
-const nodeEnv = process.env.NODE_ENV || 'development';
+function readString(name, fallback = '') {
+  const value = process.env[name];
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : fallback;
+}
+
+// Render sets RENDER=true at runtime. Fail safe to production rules there even
+// if NODE_ENV was forgotten in the dashboard; local development is unchanged.
+const nodeEnv =
+  process.env.NODE_ENV || (process.env.RENDER === 'true' ? 'production' : 'development');
 
 if (!ALLOWED_NODE_ENVS.includes(nodeEnv)) {
   throw new Error(`Invalid NODE_ENV "${nodeEnv}". Allowed values: ${ALLOWED_NODE_ENVS.join(', ')}.`);
+}
+
+const isProduction = nodeEnv === 'production';
+
+const corsOrigin = readString('CORS_ORIGIN', isProduction ? '' : '*');
+if (isProduction && (!corsOrigin || corsOrigin === '*')) {
+  throw new Error('CORS_ORIGIN must list explicit origins in production (a comma-separated list is supported).');
+}
+
+if (isProduction && !readString('ADMIN_EMAIL')) {
+  throw new Error('ADMIN_EMAIL must be set in production (the single admin allowlist entry).');
+}
+
+const stripeSecretKey = readString('STRIPE_SECRET_KEY');
+const stripeWebhookSecret = readString('STRIPE_WEBHOOK_SECRET');
+
+if (isProduction && stripeSecretKey) {
+  if (!stripeWebhookSecret) {
+    throw new Error(
+      'STRIPE_WEBHOOK_SECRET must be set in production when payments are enabled; webhooks are the only source of truth for paid orders.',
+    );
+  }
+
+  // Never let Checkout redirect real customers to a developer's localhost.
+  for (const name of ['STRIPE_SUCCESS_URL', 'STRIPE_CANCEL_URL']) {
+    const value = readString(name);
+    if (!value || /localhost|127\.0\.0\.1/i.test(value)) {
+      throw new Error(`${name} must be a deployed, non-localhost URL in production.`);
+    }
+  }
+}
+
+/**
+ * JWT secrets are mandatory in production. Development falls back to
+ * clearly-labelled local-only values so the app can start before secrets are
+ * generated; those fallbacks never apply in production or test.
+ */
+function readSecret(name, devFallback) {
+  const value = readString(name);
+  if (value) return value;
+  if (isProduction) {
+    throw new Error(`Missing required environment variable: ${name}. See .env.example for reference.`);
+  }
+  return devFallback;
 }
 
 export const env = Object.freeze({
@@ -42,13 +94,45 @@ export const env = Object.freeze({
   port: toInteger('PORT', 5000, { min: 1 }),
   mongodbUri: process.env.MONGODB_URI.trim(),
   mongoServerSelectionTimeoutMs: toInteger('MONGO_SERVER_SELECTION_TIMEOUT_MS', 5000, { min: 1 }),
-  corsOrigin: process.env.CORS_ORIGIN || '*',
-  morganFormat: process.env.MORGAN_FORMAT || 'dev',
+  // The one account that is allowed to use the admin API/dashboard.
+  adminEmail: readString('ADMIN_EMAIL', '').toLowerCase(),
+  corsOrigin,
+  morganFormat: readString('MORGAN_FORMAT', 'dev'),
   rateLimit: Object.freeze({
     windowMs: toInteger('RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000, { min: 1 }),
-    max: toInteger('RATE_LIMIT_MAX', 100, { min: 1 }),
+    // Development reloads fire many requests from one IP; keep the default high
+    // locally and strict in production, overridable via RATE_LIMIT_MAX.
+    max: toInteger('RATE_LIMIT_MAX', isProduction ? 100 : 1000, { min: 1 }),
+  }),
+  jwt: Object.freeze({
+    accessSecret: readSecret('JWT_SECRET', 'dev-only-access-secret-change-me'),
+    refreshSecret: readSecret('JWT_REFRESH_SECRET', 'dev-only-refresh-secret-change-me'),
+    accessExpiresIn: readString('JWT_ACCESS_EXPIRES_IN', '15m'),
+    refreshExpiresIn: readString('JWT_REFRESH_EXPIRES_IN', '7d'),
+    issuer: readString('JWT_ISSUER', 'medico-api'),
+    audience: readString('JWT_AUDIENCE', 'medico-client'),
+  }),
+  firebase: Object.freeze({
+    projectId: readString('FIREBASE_PROJECT_ID'),
+    clientEmail: readString('FIREBASE_CLIENT_EMAIL'),
+    privateKey: readString('FIREBASE_PRIVATE_KEY'),
+  }),
+  stripe: Object.freeze({
+    secretKey: stripeSecretKey,
+    webhookSecret: stripeWebhookSecret,
+    // Localhost fallbacks are development/test only; production validates above.
+    successUrl: readString('STRIPE_SUCCESS_URL', 'http://localhost:5173/payments/success'),
+    cancelUrl: readString('STRIPE_CANCEL_URL', 'http://localhost:5173/payments/cancel'),
+  }),
+  imgbb: Object.freeze({
+    apiKey: readString('IMGBB_API_KEY'),
+  }),
+  cloudinary: Object.freeze({
+    cloudName: readString('CLOUDINARY_CLOUD_NAME'),
+    apiKey: readString('CLOUDINARY_API_KEY'),
+    apiSecret: readString('CLOUDINARY_API_SECRET'),
   }),
 });
 
-export const isProduction = env.nodeEnv === 'production';
-export const isTest = env.nodeEnv === 'test';
+export { isProduction };
+export const isTest = nodeEnv === 'test';

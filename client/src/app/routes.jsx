@@ -4,6 +4,12 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Home from "@/features/home/pages/Home";
 import About from "@/features/about/pages/About";
 import Shop from "@/features/shop/pages/Shop";
+import Deals from "@/features/shop/pages/Deals";
+import Cart from "@/features/cart/pages/Cart";
+import Checkout from "@/features/checkout/pages/Checkout";
+import PaymentSuccess from "@/features/checkout/pages/PaymentSuccess";
+import PaymentFailure from "@/features/checkout/pages/PaymentFailure";
+import PaymentCancel from "@/features/checkout/pages/PaymentCancel";
 import Categories from "@/features/shop/pages/Categories";
 import CategoryMedicines from "@/features/shop/pages/CategoryMedicines";
 import Login from "@/features/auth/pages/Login";
@@ -11,7 +17,23 @@ import Register from "@/features/auth/pages/Register";
 import ForgotPassword from "@/features/auth/pages/ForgotPassword";
 import DashboardHome from "@/features/dashboard/pages/DashboardHome";
 import SellerHome from "@/features/dashboard/pages/SellerHome";
+import AdminOverview from "@/features/dashboard/pages/AdminOverview";
+import Orders from "@/features/dashboard/pages/Orders";
+import OrderDetails from "@/features/dashboard/pages/OrderDetails";
+import Payments from "@/features/dashboard/pages/Payments";
+import Security from "@/features/dashboard/pages/Security";
+import AdminUsers from "@/features/admin/pages/AdminUsers";
+import AdminSellers from "@/features/admin/pages/AdminSellers";
+import AdminCategories from "@/features/admin/pages/AdminCategories";
+import AdminMedicines from "@/features/admin/pages/AdminMedicines";
+import AdminOrders from "@/features/admin/pages/AdminOrders";
+import AdminPayments from "@/features/admin/pages/AdminPayments";
+import AdminReports from "@/features/admin/pages/AdminReports";
+import AdminAdvertisements from "@/features/admin/pages/AdminAdvertisements";
+import AdminHealthTips from "@/features/admin/pages/AdminHealthTips";
+import AdminAuditLogs from "@/features/admin/pages/AdminAuditLogs";
 import Profile from "@/features/auth/pages/Profile";
+import { ScrollToTop } from "./components/ScrollToTop";
 import NotFound from "@/pages/NotFound";
 import ErrorPage from "@/pages/ErrorPage";
 import { ROLES } from "@/constants/roles";
@@ -26,7 +48,8 @@ import { PATHS } from "@/utils/paths";
  */
 export const routes = [
   {
-    // Pathless root: catches errors from every route below.
+    // Pathless root: resets scroll position and catches errors from every route below.
+    element: <ScrollToTop />,
     errorElement: <ErrorPage />,
     children: [
       {
@@ -36,6 +59,13 @@ export const routes = [
           { index: true, element: <Home /> },
           { path: "about", element: <About /> },
           { path: PATHS.SHOP, element: <Shop /> },
+          { path: PATHS.DEALS, element: <Deals /> },
+          {
+            // Browsing is public; the cart itself is sign-in only.
+            path: PATHS.CART,
+            element: <PrivateRoute />,
+            children: [{ index: true, element: <Cart /> }],
+          },
           { path: PATHS.CATEGORIES, element: <Categories /> },
           { path: PATHS.CATEGORY_MEDICINES, element: <CategoryMedicines /> },
           { path: "*", element: <NotFound /> },
@@ -57,6 +87,22 @@ export const routes = [
         ],
       },
 
+      // Checkout and Stripe return pages (storefront shell, sign-in required).
+      {
+        element: <PrivateRoute />,
+        children: [
+          {
+            element: <PublicLayout />,
+            children: [
+              { path: PATHS.CHECKOUT, element: <Checkout /> },
+              { path: PATHS.PAYMENT_SUCCESS, element: <PaymentSuccess /> },
+              { path: PATHS.PAYMENT_FAILURE, element: <PaymentFailure /> },
+              { path: PATHS.PAYMENT_CANCEL, element: <PaymentCancel /> },
+            ],
+          },
+        ],
+      },
+
       // Authenticated pages.
       {
         element: <PrivateRoute />,
@@ -66,9 +112,29 @@ export const routes = [
             children: [
               { path: PATHS.DASHBOARD, element: <DashboardHome /> },
               { path: PATHS.PROFILE, element: <Profile /> },
+              { path: PATHS.SECURITY, element: <Security /> },
+              { path: PATHS.ORDERS, element: <Orders /> },
+              { path: PATHS.ORDER_DETAILS(":id"), element: <OrderDetails /> },
+              { path: PATHS.PAYMENTS, element: <Payments /> },
               {
                 element: <RoleRoute allowedRoles={[ROLES.SELLER]} />,
                 children: [{ path: PATHS.SELLER, element: <SellerHome /> }],
+              },
+              {
+                element: <RoleRoute allowedRoles={[ROLES.ADMIN]} />,
+                children: [
+                  { path: PATHS.ADMIN, element: <AdminOverview /> },
+                  { path: PATHS.ADMIN_USERS, element: <AdminUsers /> },
+                  { path: PATHS.ADMIN_SELLERS, element: <AdminSellers /> },
+                  { path: PATHS.ADMIN_CATEGORIES, element: <AdminCategories /> },
+                  { path: PATHS.ADMIN_MEDICINES, element: <AdminMedicines /> },
+                  { path: PATHS.ADMIN_ORDERS, element: <AdminOrders /> },
+                  { path: PATHS.ADMIN_PAYMENTS, element: <AdminPayments /> },
+                  { path: PATHS.ADMIN_REPORTS, element: <AdminReports /> },
+                  { path: PATHS.ADMIN_ADS, element: <AdminAdvertisements /> },
+                  { path: PATHS.ADMIN_TIPS, element: <AdminHealthTips /> },
+                  { path: PATHS.ADMIN_AUDIT, element: <AdminAuditLogs /> },
+                ],
               },
             ],
           },

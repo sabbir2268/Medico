@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AsyncContent, SkeletonGrid } from "@/components/shared/AsyncContent";
 import { SectionHeading } from "@/components/shared/SectionHeading";
@@ -37,8 +37,11 @@ function CategoryCard({ category }) {
   );
 }
 
+const VISIBLE_CATEGORIES = 8;
+
 export function CategorySection() {
   const query = useCategories();
+  const categories = query.items.slice(0, VISIBLE_CATEGORIES);
 
   return (
     <section id="categories" className="scroll-mt-24">
@@ -53,10 +56,21 @@ export function CategorySection() {
         skeleton={<SkeletonGrid count={8} />}
         className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4"
       >
-        {query.items.map((category) => (
+        {categories.map((category) => (
           <CategoryCard key={category.id} category={category} />
         ))}
       </AsyncContent>
+      {!query.isPending && !query.isError && query.items.length > 0 && (
+        <div className="mt-8 flex justify-center">
+          <Link
+            to={PATHS.CATEGORIES}
+            className="inline-flex items-center gap-2 rounded-control border border-primary/30 bg-primary-soft/60 px-5 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
+          >
+            Show more categories
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
+      )}
     </section>
   );
 }

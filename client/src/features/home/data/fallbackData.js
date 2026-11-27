@@ -396,10 +396,6 @@ const CATALOG = {
 
 export const FALLBACK_MEDICINES = Object.values(CATALOG);
 
-export function findFallbackMedicine(id) {
-  return FALLBACK_MEDICINES.find((medicine) => medicine.id === id) ?? null;
-}
-
 export const FALLBACK_FEATURED = [
   CATALOG.amoxicillin,
   CATALOG.paracetamol,
@@ -411,15 +407,17 @@ export const FALLBACK_FEATURED = [
   CATALOG.bpMonitor,
 ];
 
+// Kept intentionally disjoint from FALLBACK_FEATURED so the two storefront
+// sections never advertise the same medicine twice.
 export const FALLBACK_DISCOUNTED = [
   CATALOG.azithromycin,
-  CATALOG.vitaminD3,
-  CATALOG.cetirizine,
-  CATALOG.bpMonitor,
   CATALOG.omeprazole,
   CATALOG.babyParacetamol,
   CATALOG.amlodipine,
   CATALOG.ors,
+  CATALOG.insulinSyringe,
+  CATALOG.hydrocortisone,
+  CATALOG.salbutamol,
 ];
 
 export const FALLBACK_ADVERTISED = [
